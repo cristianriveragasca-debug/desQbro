@@ -1,0 +1,112 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (result?.error) {
+      setError("Correo o contraseña incorrectos");
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <div style={styles.page}>
+      <form onSubmit={handleSubmit} style={styles.card}>
+        <h1 style={styles.title}>desQbro</h1>
+        <p style={styles.subtitle}>Escuela de Formación Deportiva</p>
+
+        <label style={styles.label}>Correo</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={styles.input}
+        />
+
+        <label style={styles.label}>Contraseña</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={styles.input}
+        />
+
+        {error && <p style={styles.error}>{error}</p>}
+
+        <button type="submit" disabled={loading} style={styles.button}>
+          {loading ? "Ingresando..." : "Ingresar"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#0f172a",
+    fontFamily: "system-ui, sans-serif",
+  },
+  card: {
+    background: "#fff",
+    padding: "2.5rem",
+    borderRadius: "12px",
+    width: "100%",
+    maxWidth: "360px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+  },
+  title: { margin: 0, fontSize: "1.75rem", color: "#0f172a" },
+  subtitle: { marginTop: 4, marginBottom: 24, color: "#64748b", fontSize: "0.9rem" },
+  label: { display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" },
+  input: {
+    width: "100%",
+    padding: "0.6rem 0.75rem",
+    marginBottom: "1rem",
+    borderRadius: "8px",
+    border: "1px solid #cbd5e1",
+    fontSize: "1rem",
+    boxSizing: "border-box",
+  },
+  button: {
+    width: "100%",
+    padding: "0.7rem",
+    background: "#16a34a",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "1rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    marginTop: "0.5rem",
+  },
+  error: { color: "#dc2626", fontSize: "0.85rem", marginBottom: "1rem" },
+};

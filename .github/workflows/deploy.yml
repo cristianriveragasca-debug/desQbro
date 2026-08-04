@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Build
         run: npm run build
 
@@ -35,15 +38,20 @@ jobs:
             --exclude '.git' \
             --exclude 'node_modules' \
             --exclude '.github' \
+            --exclude '.env' \
+            --exclude '.env*' \
             -e "ssh -i ~/.ssh/deploy_key" \
             ./ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/desqbro/"
 
-      - name: Install prod dependencies and restart app
+      - name: Install deps, migrate DB and restart app
         run: |
           ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
             set -e
             cd /var/www/desqbro
-            npm ci --omit=dev
+            npm ci
+            npx prisma generate
+            npx prisma migrate deploy
+            npm run build
             pm2 describe desqbro > /dev/null 2>&1 && pm2 restart desqbro --update-env || pm2 start npm --name desqbro -- start
             pm2 save
           '
