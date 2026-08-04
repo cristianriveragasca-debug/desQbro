@@ -57,12 +57,12 @@ export function ClientForm({
       <button
         type="submit"
         style={{
-          background: "#16a34a",
-          color: "#fff",
+          background: "#ffc814",
+          color: "#3d0f30",
           border: "none",
           padding: "0.7rem 1.25rem",
           borderRadius: 8,
-          fontWeight: 600,
+          fontWeight: 700,
           cursor: "pointer",
         }}
       >

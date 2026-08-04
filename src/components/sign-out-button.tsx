@@ -9,12 +9,13 @@ export function SignOutButton() {
       style={{
         width: "100%",
         padding: "0.5rem",
-        background: "#1e293b",
-        color: "#e2e8f0",
+        background: "#ffc814",
+        color: "#3d0f30",
         border: "none",
         borderRadius: 6,
         cursor: "pointer",
         fontSize: "0.85rem",
+        fontWeight: 600,
       }}
     >
       Cerrar sesión

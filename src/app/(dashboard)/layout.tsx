@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { SignOutButton } from "@/components/sign-out-button";
 import Link from "next/link";
+import Image from "next/image";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", enabled: true },
@@ -21,16 +22,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside
         style={{
           width: 240,
-          background: "#0f172a",
+          background: "linear-gradient(180deg, #3d0f30 0%, #5c1a4a 100%)",
           color: "#fff",
           padding: "1.5rem 1rem",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        <div style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "0.25rem" }}>desQbro</div>
-        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginBottom: "2rem" }}>
-          Escuela de Formación Deportiva
+        <div style={{ background: "#fff", borderRadius: 10, padding: "0.6rem 0.75rem", marginBottom: "2rem" }}>
+          <Image src="/logo.jpeg" alt="desQbro" width={200} height={84} style={{ width: "100%", height: "auto", display: "block" }} priority />
         </div>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
           {NAV_ITEMS.map((item) =>
@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 key={item.href}
                 href={item.href}
                 style={{
-                  color: "#e2e8f0",
+                  color: "#f1e6ee",
                   textDecoration: "none",
                   padding: "0.6rem 0.75rem",
                   borderRadius: 8,
@@ -52,7 +52,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <span
                 key={item.href}
                 style={{
-                  color: "#475569",
+                  color: "#a97a9a",
                   padding: "0.6rem 0.75rem",
                   fontSize: "0.9rem",
                   cursor: "default",
@@ -64,8 +64,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             )
           )}
         </nav>
-        <div style={{ borderTop: "1px solid #1e293b", paddingTop: "1rem", marginTop: "1rem" }}>
-          <div style={{ fontSize: "0.85rem", marginBottom: 8 }}>{session.user?.name}</div>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: "1rem", marginTop: "1rem" }}>
+          <div style={{ fontSize: "0.85rem", marginBottom: 8, color: "#fff" }}>{session.user?.name}</div>
           <SignOutButton />
         </div>
       </aside>

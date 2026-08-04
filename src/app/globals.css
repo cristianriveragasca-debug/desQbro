@@ -1,6 +1,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --brand-purple: #5c1a4a;
+  --brand-purple-dark: #3d0f30;
+  --brand-purple-light: #7a2d64;
+  --brand-gold: #ffc814;
+  --brand-gold-dark: #e6a800;
 }
 
 @media (prefers-color-scheme: dark) {

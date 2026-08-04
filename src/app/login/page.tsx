@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
@@ -36,7 +37,9 @@ export default function LoginPage() {
   return (
     <div style={styles.page}>
       <form onSubmit={handleSubmit} style={styles.card}>
-        <h1 style={styles.title}>desQbro</h1>
+        <div style={styles.logoWrap}>
+          <Image src="/logo.jpeg" alt="desQbro" width={220} height={92} style={{ width: "100%", height: "auto" }} priority />
+        </div>
         <p style={styles.subtitle}>Escuela de Formación Deportiva</p>
 
         <label style={styles.label}>Correo</label>
@@ -73,19 +76,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#0f172a",
+    background: "linear-gradient(160deg, #3d0f30 0%, #5c1a4a 100%)",
     fontFamily: "system-ui, sans-serif",
   },
   card: {
     background: "#fff",
     padding: "2.5rem",
-    borderRadius: "12px",
+    borderRadius: "16px",
     width: "100%",
-    maxWidth: "360px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+    maxWidth: "380px",
+    boxShadow: "0 20px 45px rgba(0,0,0,0.35)",
   },
-  title: { margin: 0, fontSize: "1.75rem", color: "#0f172a" },
-  subtitle: { marginTop: 4, marginBottom: 24, color: "#64748b", fontSize: "0.9rem" },
+  logoWrap: { maxWidth: 220, margin: "0 auto" },
+  subtitle: { marginTop: 12, marginBottom: 28, color: "#64748b", fontSize: "0.9rem", textAlign: "center" },
   label: { display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" },
   input: {
     width: "100%",
@@ -99,12 +102,12 @@ const styles: Record<string, React.CSSProperties> = {
   button: {
     width: "100%",
     padding: "0.7rem",
-    background: "#16a34a",
-    color: "#fff",
+    background: "#ffc814",
+    color: "#3d0f30",
     border: "none",
     borderRadius: "8px",
     fontSize: "1rem",
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: "pointer",
     marginTop: "0.5rem",
   },

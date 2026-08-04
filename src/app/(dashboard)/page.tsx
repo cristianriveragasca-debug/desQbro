@@ -32,7 +32,7 @@ export default async function HomePage() {
             }}
           >
             <div style={{ fontSize: "0.85rem", color: "#64748b" }}>{c.label}</div>
-            <div style={{ fontSize: "2rem", fontWeight: 700, color: "#0f172a" }}>{c.value}</div>
+            <div style={{ fontSize: "2rem", fontWeight: 700, color: "#3d0f30" }}>{c.value}</div>
           </div>
         ))}
       </div>

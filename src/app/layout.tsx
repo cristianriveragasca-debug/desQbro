@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "desQbro - Gestión Escuela Deportiva",
   description: "Sistema de gestión para escuela de formación deportiva",
+  icons: { icon: "/logo.jpeg" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

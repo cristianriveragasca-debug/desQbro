@@ -19,13 +19,13 @@ export default async function ClientesPage() {
         <Link
           href="/clientes/nuevo"
           style={{
-            background: "#16a34a",
-            color: "#fff",
+            background: "#ffc814",
+            color: "#3d0f30",
             padding: "0.6rem 1rem",
             borderRadius: 8,
             textDecoration: "none",
             fontSize: "0.9rem",
-            fontWeight: 600,
+            fontWeight: 700,
           }}
         >
           + Nuevo cliente
@@ -58,7 +58,7 @@ export default async function ClientesPage() {
                 <td style={td}>{SPORT_LABEL[c.sport]}</td>
                 <td style={td}>{STATUS_LABEL[c.status]}</td>
                 <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                  <Link href={`/clientes/${c.id}/editar`} style={{ color: "#2563eb", marginRight: 12, fontSize: "0.85rem" }}>
+                  <Link href={`/clientes/${c.id}/editar`} style={{ color: "#5c1a4a", fontWeight: 600, marginRight: 12, fontSize: "0.85rem" }}>
                     Editar
                   </Link>
                   <form action={deleteClient} style={{ display: "inline" }}>
@@ -81,4 +81,4 @@ export default async function ClientesPage() {
 }
 
 const th: React.CSSProperties = { padding: "0.75rem 1rem", fontWeight: 600, color: "#334155" };
-const td: React.CSSProperties = { padding: "0.75rem 1rem", color: "#0f172a" };
+const td: React.CSSProperties = { padding: "0.75rem 1rem", color: "#3d0f30" };
