@@ -2,12 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { computeAge, computeDueDate, formatAge, toDateInputValue } from "@/lib/dates";
+import { ONE_TIME_FEES, PROGRAM_ONLY_MONTHLY, getPlanPrice } from "@/lib/pricing";
 
 const PROGRAM_INFO: Record<string, { label: string; range: string }> = {
   DESQBRO_BEBES: { label: "desQbro Bebés", range: "4 meses a 3 años y 364 días" },
   DESQBRO_AQUA: { label: "desQbro AQUA", range: "4 años a 12 años" },
   GUAGUAS_SOCCER: { label: "Güipas Soccer", range: "2 años a 9 años" },
 };
+
+function money(n: number) {
+  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+}
 
 type ClientFormValues = {
   fullName: string;
@@ -34,9 +39,23 @@ export function ClientForm({
   submitLabel: string;
 }) {
   const [birthDate, setBirthDate] = useState(defaultValues?.birthDate ?? "");
-  const [planType, setPlanType] = useState(defaultValues?.planType ?? "MENSUAL");
+  const [program, setProgram] = useState(defaultValues?.program ?? "DESQBRO_BEBES");
+  const [planType, setPlanTypeState] = useState(defaultValues?.planType ?? "MENSUAL");
   const [paymentMode, setPaymentMode] = useState(defaultValues?.paymentMode ?? "TOTAL");
   const [paymentDate, setPaymentDate] = useState(defaultValues?.paymentDate ?? toDateInputValue(new Date()));
+
+  const onlyMonthly = PROGRAM_ONLY_MONTHLY[program] ?? false;
+  const effectivePlanType = onlyMonthly ? "MENSUAL" : planType;
+
+  function setPlanType(value: string) {
+    setPlanTypeState(value);
+    if (value === "MENSUAL") setPaymentMode("TOTAL");
+  }
+
+  function handleProgramChange(value: string) {
+    setProgram(value);
+    if (PROGRAM_ONLY_MONTHLY[value]) setPlanType("MENSUAL");
+  }
 
   const age = useMemo(() => {
     if (!birthDate) return null;
@@ -49,11 +68,13 @@ export function ClientForm({
     if (!paymentDate) return null;
     const d = new Date(paymentDate + "T00:00:00");
     if (isNaN(d.getTime())) return null;
-    return toDateInputValue(computeDueDate(d, planType));
-  }, [paymentDate, planType]);
+    return toDateInputValue(computeDueDate(d, effectivePlanType));
+  }, [paymentDate, effectivePlanType]);
 
-  const showPaymentMode = planType !== "MENSUAL";
-  const maxInstallments = planType === "SEMESTRAL" ? 3 : 2;
+  const showPaymentMode = !onlyMonthly && effectivePlanType !== "MENSUAL";
+  const maxInstallments = effectivePlanType === "SEMESTRAL" ? 3 : 2;
+  const planPrice = getPlanPrice(program, effectivePlanType);
+  const applicableFees = ONE_TIME_FEES.filter((f) => f.programs.includes(program));
 
   return (
     <form action={action} style={{ maxWidth: 560, background: "#fff", padding: "1.5rem", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
@@ -97,7 +118,7 @@ export function ClientForm({
       <SectionTitle>Programa</SectionTitle>
 
       <Field label="Programa *">
-        <select name="program" defaultValue={defaultValues?.program ?? "DESQBRO_BEBES"} style={input}>
+        <select name="program" value={program} onChange={(e) => handleProgramChange(e.target.value)} style={input}>
           {Object.entries(PROGRAM_INFO).map(([value, info]) => (
             <option key={value} value={value}>
               {info.label} ({info.range})
@@ -106,23 +127,39 @@ export function ClientForm({
         </select>
       </Field>
 
+      {applicableFees.length > 0 && (
+        <Field label="Cargos únicos">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {applicableFees.map((f) => (
+              <label key={f.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.9rem", color: "#334155" }}>
+                <input type="checkbox" name={`fee_${f.key}`} defaultChecked={f.key === "inscripcion"} />
+                {f.label} ({money(f.amount)})
+              </label>
+            ))}
+          </div>
+        </Field>
+      )}
+
       <SectionTitle>Plan</SectionTitle>
 
-      <Field label="Plan *">
-        <select
-          name="planType"
-          value={planType}
-          onChange={(e) => {
-            setPlanType(e.target.value);
-            if (e.target.value === "MENSUAL") setPaymentMode("TOTAL");
-          }}
-          style={input}
-        >
-          <option value="MENSUAL">Plan Mensual</option>
-          <option value="TRIMESTRAL">Plan Trimestral</option>
-          <option value="SEMESTRAL">Plan Semestral</option>
-        </select>
-      </Field>
+      {onlyMonthly ? (
+        <>
+          <Field label="Plan">
+            <div style={{ ...input, background: "#f1f5f9", display: "flex", alignItems: "center", color: "#334155" }}>
+              Plan Mensual ({money(planPrice)}) — único plan disponible para este programa
+            </div>
+          </Field>
+          <input type="hidden" name="planType" value="MENSUAL" />
+        </>
+      ) : (
+        <Field label="Plan *">
+          <select name="planType" value={planType} onChange={(e) => setPlanType(e.target.value)} style={input}>
+            <option value="MENSUAL">Plan Mensual ({money(getPlanPrice(program, "MENSUAL"))})</option>
+            <option value="TRIMESTRAL">Plan Trimestral ({money(getPlanPrice(program, "TRIMESTRAL"))})</option>
+            <option value="SEMESTRAL">Plan Semestral ({money(getPlanPrice(program, "SEMESTRAL"))})</option>
+          </select>
+        </Field>
+      )}
 
       {showPaymentMode && (
         <Row>

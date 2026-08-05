@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { deleteClient } from "./actions";
+import { deleteClient, renewMonthlyPayment } from "./actions";
 import { computeAge, formatAge } from "@/lib/dates";
 
 const PROGRAM_LABEL: Record<string, string> = {
@@ -81,6 +81,28 @@ export default async function ClientesPage() {
                   </td>
                   <td style={td}>{STATUS_LABEL[c.status]}</td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
+                    {c.planType === "MENSUAL" && (
+                      <form action={renewMonthlyPayment} style={{ display: "inline" }}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <button
+                          type="submit"
+                          title="Registra el pago del mes y actualiza la fecha de vencimiento"
+                          style={{
+                            background: "#ecfdf5",
+                            color: "#166534",
+                            border: "1px solid #a7f3d0",
+                            padding: "0.25rem 0.6rem",
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            fontSize: "0.8rem",
+                            cursor: "pointer",
+                            marginRight: 12,
+                          }}
+                        >
+                          Renovar pago
+                        </button>
+                      </form>
+                    )}
                     <Link href={`/clientes/${c.id}/editar`} style={{ color: "#5c1a4a", fontWeight: 600, marginRight: 12, fontSize: "0.85rem" }}>
                       Editar
                     </Link>

@@ -4,6 +4,25 @@ export const PLAN_PRICE: Record<string, number> = {
   SEMESTRAL: 780000,
 };
 
+// Precios especiales por programa que sobreescriben PLAN_PRICE.
+export const PROGRAM_PLAN_PRICE: Record<string, Partial<Record<string, number>>> = {
+  GUAGUAS_SOCCER: { MENSUAL: 90000 },
+};
+
+// Programas que solo permiten plan mensual.
+export const PROGRAM_ONLY_MONTHLY: Record<string, boolean> = {
+  GUAGUAS_SOCCER: true,
+};
+
+export function getPlanPrice(program: string, planType: string): number {
+  return PROGRAM_PLAN_PRICE[program]?.[planType] ?? PLAN_PRICE[planType] ?? 0;
+}
+
+export const ONE_TIME_FEES: { key: string; label: string; amount: number; programs: string[] }[] = [
+  { key: "inscripcion", label: "Inscripción / matrícula anual", amount: 50000, programs: ["GUAGUAS_SOCCER"] },
+  { key: "uniforme", label: "Uniforme", amount: 85000, programs: ["GUAGUAS_SOCCER"] },
+];
+
 export const PLAN_MONTHS: Record<string, number> = {
   MENSUAL: 1,
   TRIMESTRAL: 3,
@@ -32,11 +51,12 @@ export type GeneratedInstallment = {
 };
 
 export function generateInstallments(
+  program: string,
   planType: string,
   installments: number,
   paymentDate: Date
 ): GeneratedInstallment[] {
-  const total = PLAN_PRICE[planType] ?? 0;
+  const total = getPlanPrice(program, planType);
   const months = PLAN_MONTHS[planType] ?? 1;
   const label = PLAN_LABEL[planType] ?? "Plan";
   const n = Math.max(installments, 1);

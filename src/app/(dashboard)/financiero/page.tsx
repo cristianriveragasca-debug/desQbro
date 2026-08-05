@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { markAsPaid } from "./actions";
-import { CASH_DISTRIBUTION, PLAN_LABEL, PLAN_MONTHS, PLAN_PRICE } from "@/lib/pricing";
+import { CASH_DISTRIBUTION, PLAN_LABEL, PLAN_MONTHS, getPlanPrice } from "@/lib/pricing";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -66,7 +66,7 @@ export default async function FinancieroPage() {
     .map((c) => {
       const totalPaid = c.payments.reduce((sum, p) => sum + Number(p.amount), 0);
       const months = PLAN_MONTHS[c.planType] ?? 1;
-      const monthlyEquivalent = PLAN_PRICE[c.planType] / months;
+      const monthlyEquivalent = getPlanPrice(c.program, c.planType) / months;
       const elapsed = Math.min(monthsElapsed(c.paymentDate, today), months);
       const recognized = Math.min(monthlyEquivalent * elapsed, totalPaid);
       const advance = Math.max(totalPaid - recognized, 0);
