@@ -6,7 +6,7 @@ import { computeAge, formatAge } from "@/lib/dates";
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
   DESQBRO_AQUA: "desQbro AQUA",
-  GUAGUAS_SOCCER: "Guaguas Soccer",
+  GUAGUAS_SOCCER: "Güipas Soccer",
 };
 const PLAN_LABEL: Record<string, string> = {
   MENSUAL: "Mensual",

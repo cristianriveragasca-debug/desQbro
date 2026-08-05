@@ -14,7 +14,7 @@ export default async function HomePage() {
     { label: "Activos", value: activos },
     { label: "desQbro Bebés", value: bebes },
     { label: "desQbro AQUA", value: aqua },
-    { label: "Guaguas Soccer", value: soccer },
+    { label: "Güipas Soccer", value: soccer },
   ];
 
   return (

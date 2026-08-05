@@ -6,7 +6,7 @@ import { computeAge, computeDueDate, formatAge, toDateInputValue } from "@/lib/d
 const PROGRAM_INFO: Record<string, { label: string; range: string }> = {
   DESQBRO_BEBES: { label: "desQbro Bebés", range: "4 meses a 3 años y 364 días" },
   DESQBRO_AQUA: { label: "desQbro AQUA", range: "4 años a 12 años" },
-  GUAGUAS_SOCCER: { label: "Guaguas Soccer", range: "2 años a 9 años" },
+  GUAGUAS_SOCCER: { label: "Güipas Soccer", range: "2 años a 9 años" },
 };
 
 type ClientFormValues = {
