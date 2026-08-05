@@ -209,12 +209,14 @@ export function ClientForm({
 
       <SectionTitle>Otros</SectionTitle>
 
-      <Field label="Estado">
-        <select name="status" defaultValue={defaultValues?.status ?? "ACTIVO"} style={input}>
+      <Field label="Matrícula">
+        <select name="status" defaultValue={defaultValues?.status === "INACTIVO" ? "INACTIVO" : "ACTIVO"} style={input}>
           <option value="ACTIVO">Activo</option>
-          <option value="INACTIVO">Inactivo</option>
-          <option value="VENCIDO">Vencido</option>
+          <option value="INACTIVO">Inactivo (retirado)</option>
         </select>
+        <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 4 }}>
+          El estado &quot;Vencido&quot; lo calcula el sistema automáticamente según la fecha de vencimiento.
+        </p>
       </Field>
 
       <Field label="Observaciones">

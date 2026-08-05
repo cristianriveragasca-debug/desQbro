@@ -21,9 +21,8 @@ function parsePaymentMode(value: FormDataEntryValue | null): "TOTAL" | "CUOTAS" 
   return value === "CUOTAS" ? "CUOTAS" : "TOTAL";
 }
 
-function parseStatus(value: FormDataEntryValue | null): "ACTIVO" | "INACTIVO" | "VENCIDO" {
-  if (value === "INACTIVO" || value === "VENCIDO") return value;
-  return "ACTIVO";
+function parseStatus(value: FormDataEntryValue | null): "ACTIVO" | "INACTIVO" {
+  return value === "INACTIVO" ? "INACTIVO" : "ACTIVO";
 }
 
 function buildData(formData: FormData) {

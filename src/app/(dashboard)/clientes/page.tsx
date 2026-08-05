@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { deleteClient, renewMonthlyPayment } from "./actions";
 import { computeAge, formatAge } from "@/lib/dates";
+import { getEffectiveStatus } from "@/lib/status";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -17,6 +18,11 @@ const STATUS_LABEL: Record<string, string> = {
   ACTIVO: "Activo",
   INACTIVO: "Inactivo",
   VENCIDO: "Vencido",
+};
+const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
+  ACTIVO: { bg: "#dcfce7", fg: "#166534" },
+  VENCIDO: { bg: "#fee2e2", fg: "#dc2626" },
+  INACTIVO: { bg: "#f1f5f9", fg: "#64748b" },
 };
 
 export default async function ClientesPage() {
@@ -68,6 +74,8 @@ export default async function ClientesPage() {
             )}
             {clients.map((c) => {
               const overdue = c.dueDate < today;
+              const effectiveStatus = getEffectiveStatus(c.status, c.dueDate, today);
+              const statusColor = STATUS_COLOR[effectiveStatus];
               return (
                 <tr key={c.id} style={{ borderTop: "1px solid #e2e8f0" }}>
                   <td style={td}>{c.fullName}</td>
@@ -79,7 +87,21 @@ export default async function ClientesPage() {
                   <td style={{ ...td, color: overdue ? "#dc2626" : "#3d0f30", fontWeight: overdue ? 700 : 400, whiteSpace: "nowrap" }}>
                     {c.dueDate.toLocaleDateString("es-CO")}
                   </td>
-                  <td style={td}>{STATUS_LABEL[c.status]}</td>
+                  <td style={td}>
+                    <span
+                      style={{
+                        background: statusColor.bg,
+                        color: statusColor.fg,
+                        padding: "0.2rem 0.6rem",
+                        borderRadius: 999,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {STATUS_LABEL[effectiveStatus]}
+                    </span>
+                  </td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                     {c.planType === "MENSUAL" && (
                       <form action={renewMonthlyPayment} style={{ display: "inline" }}>
