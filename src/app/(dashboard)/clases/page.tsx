@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { deleteClassGroup } from "./actions";
 import { DAY_LABELS, PROGRAM_LABEL } from "@/lib/schedule";
 
+// DAY_LABELS[0] = Domingo (coincide con dayOfWeek guardado). Para mostrar
+// el calendario de lunes a domingo, solo reordenamos el orden de recorrido.
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
 function occupancyColor(enrolled: number, capacity: number) {
   const ratio = capacity > 0 ? enrolled / capacity : 0;
   if (ratio >= 1) return { bg: "#fee2e2", fg: "#dc2626", border: "#fca5a5" };
@@ -51,7 +55,7 @@ export default async function ClasesPage() {
           overflowX: "auto",
         }}
       >
-        {DAY_LABELS.map((label, dayIdx) => (
+        {WEEK_ORDER.map((dayIdx) => (
           <div key={dayIdx} style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", minHeight: 120 }}>
             <div
               style={{
@@ -64,7 +68,7 @@ export default async function ClasesPage() {
                 textAlign: "center",
               }}
             >
-              {label}
+              {DAY_LABELS[dayIdx]}
             </div>
             <div style={{ padding: "0.5rem", display: "flex", flexDirection: "column", gap: 6 }}>
               {(byDay[dayIdx] ?? []).length === 0 && (
