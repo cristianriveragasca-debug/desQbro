@@ -20,8 +20,8 @@ function parsePaymentMode(value: FormDataEntryValue | null): "TOTAL" | "CUOTAS" 
   return value === "CUOTAS" ? "CUOTAS" : "TOTAL";
 }
 
-function parseStatus(value: FormDataEntryValue | null): "ACTIVO" | "INACTIVO" | "SUSPENDIDO" {
-  if (value === "INACTIVO" || value === "SUSPENDIDO") return value;
+function parseStatus(value: FormDataEntryValue | null): "ACTIVO" | "INACTIVO" | "VENCIDO" {
+  if (value === "INACTIVO" || value === "VENCIDO") return value;
   return "ACTIVO";
 }
 

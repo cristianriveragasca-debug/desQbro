@@ -176,7 +176,7 @@ export function ClientForm({
         <select name="status" defaultValue={defaultValues?.status ?? "ACTIVO"} style={input}>
           <option value="ACTIVO">Activo</option>
           <option value="INACTIVO">Inactivo</option>
-          <option value="SUSPENDIDO">Suspendido</option>
+          <option value="VENCIDO">Vencido</option>
         </select>
       </Field>
 

@@ -16,7 +16,7 @@ const PLAN_LABEL: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   ACTIVO: "Activo",
   INACTIVO: "Inactivo",
-  SUSPENDIDO: "Suspendido",
+  VENCIDO: "Vencido",
 };
 
 export default async function ClientesPage() {

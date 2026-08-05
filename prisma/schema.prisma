@@ -37,7 +37,7 @@ enum PaymentMode {
 enum ClientStatus {
   ACTIVO
   INACTIVO
-  SUSPENDIDO
+  VENCIDO
 }
 
 enum PaymentStatus {
