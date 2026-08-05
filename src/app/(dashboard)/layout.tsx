@@ -7,8 +7,8 @@ import Image from "next/image";
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", enabled: true },
   { href: "/clientes", label: "Clientes", enabled: true },
-  { href: "/clases", label: "Agendamiento de Clases", enabled: false },
-  { href: "/asistencia", label: "Asistencia", enabled: false },
+  { href: "/clases", label: "Agendamiento de Clases", enabled: true },
+  { href: "/asistencia", label: "Asistencia", enabled: true },
   { href: "/financiero", label: "Financiero", enabled: true },
   { href: "/marketing", label: "Marketing WhatsApp", enabled: false },
 ];

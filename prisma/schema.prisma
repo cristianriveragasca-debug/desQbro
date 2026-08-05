@@ -12,11 +12,6 @@ enum Role {
   STAFF
 }
 
-enum Sport {
-  FUTBOL
-  NATACION
-}
-
 enum Program {
   DESQBRO_BEBES
   DESQBRO_AQUA
@@ -93,10 +88,10 @@ model Client {
   messages    Message[]
 }
 
-model SportClass {
+model ClassGroup {
   id         String   @id @default(cuid())
   name       String
-  sport      Sport
+  program    Program
   dayOfWeek  Int
   startTime  String
   endTime    String
@@ -109,24 +104,26 @@ model SportClass {
 }
 
 model Enrollment {
-  id        String     @id @default(cuid())
-  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId  String
-  sportClass SportClass @relation(fields: [sportClassId], references: [id], onDelete: Cascade)
-  sportClassId String
-  createdAt DateTime   @default(now())
+  id           String     @id @default(cuid())
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId     String
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  classGroupId String
+  createdAt    DateTime   @default(now())
 
-  @@unique([clientId, sportClassId])
+  @@unique([clientId, classGroupId])
 }
 
 model ClassSession {
   id           String       @id @default(cuid())
-  sportClass   SportClass   @relation(fields: [sportClassId], references: [id], onDelete: Cascade)
-  sportClassId String
+  classGroup   ClassGroup   @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  classGroupId String
   date         DateTime
   createdAt    DateTime     @default(now())
 
   attendances  Attendance[]
+
+  @@unique([classGroupId, date])
 }
 
 model Attendance {
