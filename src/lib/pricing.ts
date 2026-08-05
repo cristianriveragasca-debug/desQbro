@@ -4,17 +4,24 @@ export const PLAN_PRICE: Record<string, number> = {
   SEMESTRAL: 780000,
 };
 
-const PLAN_MONTHS: Record<string, number> = {
+export const PLAN_MONTHS: Record<string, number> = {
   MENSUAL: 1,
   TRIMESTRAL: 3,
   SEMESTRAL: 6,
 };
 
-const PLAN_LABEL: Record<string, string> = {
+export const PLAN_LABEL: Record<string, string> = {
   MENSUAL: "Plan Mensual",
   TRIMESTRAL: "Plan Trimestral",
   SEMESTRAL: "Plan Semestral",
 };
+
+export const CASH_DISTRIBUTION: { key: string; label: string; pct: number }[] = [
+  { key: "operacion", label: "Operación", pct: 0.55 },
+  { key: "marketing", label: "Marketing", pct: 0.1 },
+  { key: "reserva", label: "Reserva", pct: 0.15 },
+  { key: "utilidad", label: "Utilidad / Fundador", pct: 0.2 },
+];
 
 export type GeneratedInstallment = {
   amount: number;
