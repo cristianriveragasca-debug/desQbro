@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: "/clientes", label: "Clientes", enabled: true },
   { href: "/clases", label: "Agendamiento de Clases", enabled: false },
   { href: "/asistencia", label: "Asistencia", enabled: false },
-  { href: "/financiero", label: "Financiero", enabled: false },
+  { href: "/financiero", label: "Financiero", enabled: true },
   { href: "/marketing", label: "Marketing WhatsApp", enabled: false },
 ];
 

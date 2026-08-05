@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { computeDueDate } from "@/lib/dates";
+import { generateInstallments } from "@/lib/pricing";
 
 function parseProgram(value: FormDataEntryValue | null): "DESQBRO_BEBES" | "DESQBRO_AQUA" | "GUAGUAS_SOCCER" {
   if (value === "DESQBRO_AQUA" || value === "GUAGUAS_SOCCER") return value;
@@ -74,9 +75,23 @@ export async function createClient(formData: FormData) {
   if (!session) redirect("/login");
 
   const data = buildData(formData);
-  await prisma.client.create({ data });
+
+  const client = await prisma.client.create({ data });
+
+  const installments = generateInstallments(data.planType, data.installments, data.paymentDate);
+  await prisma.payment.createMany({
+    data: installments.map((inst) => ({
+      clientId: client.id,
+      amount: inst.amount,
+      concept: inst.concept,
+      status: inst.status,
+      dueDate: inst.dueDate,
+      paidAt: inst.paidAt,
+    })),
+  });
 
   revalidatePath("/clientes");
+  revalidatePath("/financiero");
   redirect("/clientes");
 }
 
@@ -87,7 +102,23 @@ export async function updateClient(id: string, formData: FormData) {
   const data = buildData(formData);
   await prisma.client.update({ where: { id }, data });
 
+  const existingPayments = await prisma.payment.count({ where: { clientId: id } });
+  if (existingPayments === 0) {
+    const installments = generateInstallments(data.planType, data.installments, data.paymentDate);
+    await prisma.payment.createMany({
+      data: installments.map((inst) => ({
+        clientId: id,
+        amount: inst.amount,
+        concept: inst.concept,
+        status: inst.status,
+        dueDate: inst.dueDate,
+        paidAt: inst.paidAt,
+      })),
+    });
+  }
+
   revalidatePath("/clientes");
+  revalidatePath("/financiero");
   redirect("/clientes");
 }
 
@@ -100,4 +131,5 @@ export async function deleteClient(formData: FormData) {
 
   await prisma.client.delete({ where: { id } });
   revalidatePath("/clientes");
+  revalidatePath("/financiero");
 }
