@@ -1,18 +1,20 @@
 import { prisma } from "@/lib/prisma";
 
 export default async function HomePage() {
-  const [totalClientes, activos, futbol, natacion] = await Promise.all([
+  const [totalClientes, activos, bebes, aqua, soccer] = await Promise.all([
     prisma.client.count(),
     prisma.client.count({ where: { status: "ACTIVO" } }),
-    prisma.client.count({ where: { sport: "FUTBOL" } }),
-    prisma.client.count({ where: { sport: "NATACION" } }),
+    prisma.client.count({ where: { program: "DESQBRO_BEBES" } }),
+    prisma.client.count({ where: { program: "DESQBRO_AQUA" } }),
+    prisma.client.count({ where: { program: "GUAGUAS_SOCCER" } }),
   ]);
 
   const cards = [
     { label: "Total clientes", value: totalClientes },
     { label: "Activos", value: activos },
-    { label: "Fútbol", value: futbol },
-    { label: "Natación", value: natacion },
+    { label: "desQbro Bebés", value: bebes },
+    { label: "desQbro AQUA", value: aqua },
+    { label: "Guaguas Soccer", value: soccer },
   ];
 
   return (

@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { deleteClient } from "./actions";
+import { computeAge, formatAge } from "@/lib/dates";
 
-const SPORT_LABEL: Record<string, string> = { FUTBOL: "Fútbol", NATACION: "Natación" };
+const PROGRAM_LABEL: Record<string, string> = {
+  DESQBRO_BEBES: "desQbro Bebés",
+  DESQBRO_AQUA: "desQbro AQUA",
+  GUAGUAS_SOCCER: "Guaguas Soccer",
+};
+const PLAN_LABEL: Record<string, string> = {
+  MENSUAL: "Mensual",
+  TRIMESTRAL: "Trimestral",
+  SEMESTRAL: "Semestral",
+};
 const STATUS_LABEL: Record<string, string> = {
   ACTIVO: "Activo",
   INACTIVO: "Inactivo",
@@ -11,6 +21,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function ClientesPage() {
   const clients = await prisma.client.findMany({ orderBy: { createdAt: "desc" } });
+  const today = new Date();
 
   return (
     <div>
@@ -32,13 +43,17 @@ export default async function ClientesPage() {
         </Link>
       </div>
 
-      <div style={{ marginTop: 24, background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+      <div style={{ marginTop: 24, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
               <th style={th}>Nombre</th>
+              <th style={th}>Edad</th>
+              <th style={th}>Acudiente</th>
               <th style={th}>Teléfono</th>
-              <th style={th}>Deporte</th>
+              <th style={th}>Programa</th>
+              <th style={th}>Plan</th>
+              <th style={th}>Vence</th>
               <th style={th}>Estado</th>
               <th style={th}></th>
             </tr>
@@ -46,33 +61,42 @@ export default async function ClientesPage() {
           <tbody>
             {clients.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ ...td, textAlign: "center", color: "#94a3b8" }}>
+                <td colSpan={9} style={{ ...td, textAlign: "center", color: "#94a3b8" }}>
                   Aún no hay clientes registrados.
                 </td>
               </tr>
             )}
-            {clients.map((c) => (
-              <tr key={c.id} style={{ borderTop: "1px solid #e2e8f0" }}>
-                <td style={td}>{c.fullName}</td>
-                <td style={td}>{c.phone}</td>
-                <td style={td}>{SPORT_LABEL[c.sport]}</td>
-                <td style={td}>{STATUS_LABEL[c.status]}</td>
-                <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                  <Link href={`/clientes/${c.id}/editar`} style={{ color: "#5c1a4a", fontWeight: 600, marginRight: 12, fontSize: "0.85rem" }}>
-                    Editar
-                  </Link>
-                  <form action={deleteClient} style={{ display: "inline" }}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <button
-                      type="submit"
-                      style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.85rem" }}
-                    >
-                      Eliminar
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
+            {clients.map((c) => {
+              const overdue = c.dueDate < today;
+              return (
+                <tr key={c.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={td}>{c.fullName}</td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>{formatAge(computeAge(c.birthDate))}</td>
+                  <td style={td}>{c.guardianName}</td>
+                  <td style={td}>{c.phone}</td>
+                  <td style={td}>{PROGRAM_LABEL[c.program]}</td>
+                  <td style={td}>{PLAN_LABEL[c.planType]}</td>
+                  <td style={{ ...td, color: overdue ? "#dc2626" : "#3d0f30", fontWeight: overdue ? 700 : 400, whiteSpace: "nowrap" }}>
+                    {c.dueDate.toLocaleDateString("es-CO")}
+                  </td>
+                  <td style={td}>{STATUS_LABEL[c.status]}</td>
+                  <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
+                    <Link href={`/clientes/${c.id}/editar`} style={{ color: "#5c1a4a", fontWeight: 600, marginRight: 12, fontSize: "0.85rem" }}>
+                      Editar
+                    </Link>
+                    <form action={deleteClient} style={{ display: "inline" }}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <button
+                        type="submit"
+                        style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.85rem" }}
+                      >
+                        Eliminar
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

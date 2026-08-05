@@ -17,6 +17,23 @@ enum Sport {
   NATACION
 }
 
+enum Program {
+  DESQBRO_BEBES
+  DESQBRO_AQUA
+  GUAGUAS_SOCCER
+}
+
+enum PlanType {
+  MENSUAL
+  TRIMESTRAL
+  SEMESTRAL
+}
+
+enum PaymentMode {
+  TOTAL
+  CUOTAS
+}
+
 enum ClientStatus {
   ACTIVO
   INACTIVO
@@ -53,17 +70,22 @@ model User {
 }
 
 model Client {
-  id          String       @id @default(cuid())
-  fullName    String
-  email       String?
-  phone       String
-  sport       Sport
-  birthDate   DateTime?
-  guardianName String?
-  status      ClientStatus @default(ACTIVO)
-  notes       String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String       @id @default(cuid())
+  fullName     String
+  birthDate    DateTime
+  guardianName String
+  phone        String
+  email        String?
+  program      Program
+  planType     PlanType
+  paymentMode  PaymentMode  @default(TOTAL)
+  installments Int          @default(1)
+  paymentDate  DateTime
+  dueDate      DateTime
+  status       ClientStatus @default(ACTIVO)
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   enrollments Enrollment[]
   payments    Payment[]
