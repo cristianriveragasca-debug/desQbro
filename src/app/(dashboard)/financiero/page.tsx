@@ -32,13 +32,17 @@ export default async function FinancieroPage() {
   let pendiente = 0;
   let vencido = 0;
   const byProgram: Record<string, number> = {};
+  const mesByProgram: Record<string, number> = {};
 
   for (const p of payments) {
     const amount = Number(p.amount);
     if (p.status === "PAGADO") {
       recaudadoTotal += amount;
-      if (p.paidAt && p.paidAt >= startOfMonth) recaudadoMes += amount;
       byProgram[p.client.program] = (byProgram[p.client.program] ?? 0) + amount;
+      if (p.paidAt && p.paidAt >= startOfMonth) {
+        recaudadoMes += amount;
+        mesByProgram[p.client.program] = (mesByProgram[p.client.program] ?? 0) + amount;
+      }
     } else if (p.status === "PENDIENTE") {
       if (p.dueDate < today) vencido += amount;
       else pendiente += amount;
@@ -98,16 +102,46 @@ export default async function FinancieroPage() {
         ))}
       </div>
 
-      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Distribución de caja (recaudado del mes)</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginTop: 12 }}>
-        {CASH_DISTRIBUTION.map((d) => (
-          <div key={d.key} style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-            <div style={{ fontSize: "0.85rem", color: "#64748b" }}>
-              {d.label} <span style={{ color: "#a97a9a" }}>({Math.round(d.pct * 100)}%)</span>
-            </div>
-            <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#3d0f30" }}>{money(recaudadoMes * d.pct)}</div>
-          </div>
-        ))}
+      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Distribución de caja por programa (mes actual)</h2>
+      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Programa</th>
+              <th style={th}>Recaudado mes</th>
+              {CASH_DISTRIBUTION.map((d) => (
+                <th key={d.key} style={th}>
+                  {d.label} ({Math.round(d.pct * 100)}%)
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(PROGRAM_LABEL).map(([key, label]) => {
+              const monto = mesByProgram[key] ?? 0;
+              return (
+                <tr key={key} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={td}>{label}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{money(monto)}</td>
+                  {CASH_DISTRIBUTION.map((d) => (
+                    <td key={d.key} style={td}>
+                      {money(monto * d.pct)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+            <tr style={{ borderTop: "2px solid #cbd5e1", fontWeight: 700 }}>
+              <td style={td}>Total</td>
+              <td style={td}>{money(recaudadoMes)}</td>
+              {CASH_DISTRIBUTION.map((d) => (
+                <td key={d.key} style={td}>
+                  {money(recaudadoMes * d.pct)}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Caja anticipada (planes trimestrales / semestrales)</h2>
