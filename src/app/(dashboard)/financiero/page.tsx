@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { markAsPaid } from "./actions";
 import { CASH_DISTRIBUTION, PLAN_LABEL, PLAN_MONTHS, getPlanPrice } from "@/lib/pricing";
+import { EXPENSE_CATEGORY_LABEL } from "@/lib/expenses";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -52,8 +54,25 @@ export default async function FinancieroPage() {
   const pendingPayments = payments.filter((p) => p.status === "PENDIENTE");
   const recentPaid = payments.filter((p) => p.status === "PAGADO").slice(-15).reverse();
 
+  const expensesMes = await prisma.expense.aggregate({
+    _sum: { amount: true },
+    where: { date: { gte: startOfMonth } },
+  });
+  const egresosMes = Number(expensesMes._sum.amount ?? 0);
+  const utilidadNeta = recaudadoMes - egresosMes;
+
+  const expensesMesList = await prisma.expense.findMany({ where: { date: { gte: startOfMonth } } });
+  const egresosPorCategoria: Record<string, number> = {};
+  for (const e of expensesMesList) {
+    egresosPorCategoria[e.category] = (egresosPorCategoria[e.category] ?? 0) + Number(e.amount);
+  }
+  const egresosPorCategoriaOrdenados = Object.entries(egresosPorCategoria).sort((a, b) => b[1] - a[1]);
+  const maxEgresoCategoria = Math.max(...egresosPorCategoriaOrdenados.map(([, v]) => v), 1);
+
   const cards = [
     { label: "Recaudado este mes", value: money(recaudadoMes), color: "#166534" },
+    { label: "Egresos este mes", value: money(egresosMes), color: "#dc2626" },
+    { label: "Utilidad neta del mes", value: money(utilidadNeta), color: utilidadNeta >= 0 ? "#166534" : "#dc2626" },
     { label: "Recaudado histórico", value: money(recaudadoTotal), color: "#3d0f30" },
     { label: "Por cobrar (vigente)", value: money(pendiente), color: "#92400e" },
     { label: "Vencido", value: money(vencido), color: "#dc2626" },
@@ -90,8 +109,26 @@ export default async function FinancieroPage() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Financiero</h1>
-      <p style={{ color: "#64748b" }}>Recaudo, cuotas pendientes e ingresos por programa.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Financiero</h1>
+          <p style={{ color: "#64748b", marginTop: 4 }}>Recaudo, cuotas pendientes e ingresos por programa.</p>
+        </div>
+        <Link
+          href="/financiero/egresos"
+          style={{
+            background: "#ffc814",
+            color: "#3d0f30",
+            padding: "0.6rem 1rem",
+            borderRadius: 8,
+            textDecoration: "none",
+            fontSize: "0.9rem",
+            fontWeight: 700,
+          }}
+        >
+          Ver Egresos →
+        </Link>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginTop: 24 }}>
         {cards.map((c) => (
@@ -185,6 +222,34 @@ export default async function FinancieroPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Egresos por categoría (mes actual)</h2>
+      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        {egresosPorCategoriaOrdenados.length === 0 ? (
+          <p style={{ color: "#94a3b8", margin: 0, fontSize: "0.85rem" }}>No hay egresos registrados este mes.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {egresosPorCategoriaOrdenados.map(([category, amount]) => (
+              <div key={category}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: 4 }}>
+                  <span style={{ color: "#334155" }}>{EXPENSE_CATEGORY_LABEL[category] ?? category}</span>
+                  <span style={{ fontWeight: 600, color: "#dc2626" }}>{money(amount)}</span>
+                </div>
+                <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${(amount / maxEgresoCategoria) * 100}%`,
+                      background: "#dc2626",
+                      height: "100%",
+                      borderRadius: 999,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Ingresos por programa (histórico)</h2>

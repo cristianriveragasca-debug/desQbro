@@ -54,6 +54,24 @@ enum CampaignStatus {
   FALLIDA
 }
 
+enum ExpenseCategory {
+  NOMINA
+  ARRIENDO
+  SERVICIOS_PUBLICOS
+  IMPLEMENTOS
+  MARKETING
+  MANTENIMIENTO
+  ADMINISTRATIVO
+  OTROS
+}
+
+enum ExpenseMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  OTRO
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -149,6 +167,19 @@ model Payment {
   paidAt    DateTime?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+model Expense {
+  id        String          @id @default(cuid())
+  date      DateTime
+  category  ExpenseCategory
+  concept   String
+  provider  String?
+  amount    Decimal         @db.Decimal(10, 2)
+  method    ExpenseMethod   @default(TRANSFERENCIA)
+  notes     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 }
 
 model Campaign {
