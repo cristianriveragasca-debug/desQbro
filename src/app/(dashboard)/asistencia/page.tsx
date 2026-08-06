@@ -100,7 +100,7 @@ export default async function AsistenciaPage({
               <input type="hidden" name="classGroupId" value={selectedGroup.id} />
               <input type="hidden" name="date" value={selectedDate} />
 
-              <div style={{ background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
                   <thead>
                     <tr style={{ background: "#f1f5f9", textAlign: "left" }}>

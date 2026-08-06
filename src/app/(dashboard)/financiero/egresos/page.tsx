@@ -22,7 +22,7 @@ export default async function EgresosPage() {
         Total registrado: <strong>{money(total)}</strong>
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 24, marginTop: 24, alignItems: "start" }}>
+      <div className="two-col-stack" style={{ gridTemplateColumns: "1fr 1.4fr", marginTop: 24 }}>
         <div>
           <h2 style={{ fontSize: "1rem", marginTop: 0 }}>Nuevo egreso</h2>
           <form
@@ -89,7 +89,7 @@ export default async function EgresosPage() {
 
         <div>
           <h2 style={{ fontSize: "1rem", marginTop: 0 }}>Historial</h2>
-          <div style={{ background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
@@ -139,7 +139,7 @@ export default async function EgresosPage() {
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
+  return <div className="form-row">{children}</div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

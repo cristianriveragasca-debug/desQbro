@@ -76,7 +76,7 @@ export function ClassForm({
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
+  return <div className="form-row">{children}</div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -30,7 +30,7 @@ export default async function ClaseDetallePage({ params }: { params: Promise<{ i
         {classGroup.enrollments.length}/{classGroup.capacity}
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
+      <div className="two-col-stack" style={{ gridTemplateColumns: "1fr 1fr", marginTop: 24 }}>
         <div>
           <h2 style={{ fontSize: "1rem" }}>Inscritos ({classGroup.enrollments.length})</h2>
           <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", overflow: "hidden" }}>

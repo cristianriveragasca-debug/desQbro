@@ -140,7 +140,7 @@ export default async function FinancieroPage() {
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Distribución de caja por programa (mes actual)</h2>
-      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div className="table-scroll" style={{ marginTop: 12, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
@@ -192,7 +192,7 @@ export default async function FinancieroPage() {
           <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "#0369a1" }}>{money(totalAdvance)}</div>
         </div>
       </div>
-      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div className="table-scroll" style={{ marginTop: 12, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
@@ -263,7 +263,7 @@ export default async function FinancieroPage() {
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Cuotas pendientes y vencidas</h2>
-      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div className="table-scroll" style={{ marginTop: 12, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
@@ -335,7 +335,7 @@ export default async function FinancieroPage() {
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Últimos pagos recibidos</h2>
-      <div style={{ marginTop: 12, background: "#fff", borderRadius: 12, overflow: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div className="table-scroll" style={{ marginTop: 12, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
