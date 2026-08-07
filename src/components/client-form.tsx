@@ -24,6 +24,7 @@ type ClientFormValues = {
   planType: string;
   paymentMode: string;
   installments: number;
+  customAmount: number | null;
   paymentDate: string;
   status: string;
   notes: string;
@@ -160,6 +161,21 @@ export function ClientForm({
           </select>
         </Field>
       )}
+
+      <Field label="Valor personalizado para este cliente (opcional)">
+        <input
+          name="customAmount"
+          type="number"
+          min={0}
+          step={1000}
+          defaultValue={defaultValues?.customAmount ?? ""}
+          placeholder={`Estándar: ${money(planPrice)}`}
+          style={input}
+        />
+        <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 4 }}>
+          Déjalo vacío para cobrar el valor estándar del plan. Si escribes un valor, se usará ese monto (total del plan) en vez del estándar para este cliente.
+        </p>
+      </Field>
 
       {showPaymentMode && (
         <Row>

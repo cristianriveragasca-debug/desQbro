@@ -83,7 +83,25 @@ export default async function ClientesPage() {
                   <td style={td}>{c.guardianName}</td>
                   <td style={td}>{c.phone}</td>
                   <td style={td}>{PROGRAM_LABEL[c.program]}</td>
-                  <td style={td}>{PLAN_LABEL[c.planType]}</td>
+                  <td style={td}>
+                    {PLAN_LABEL[c.planType]}
+                    {c.customAmount && (
+                      <span
+                        title="Este cliente paga un valor personalizado"
+                        style={{
+                          marginLeft: 6,
+                          background: "#ede9fe",
+                          color: "#6d28d9",
+                          padding: "0.1rem 0.4rem",
+                          borderRadius: 999,
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Personalizado
+                      </span>
+                    )}
+                  </td>
                   <td style={{ ...td, color: overdue ? "#dc2626" : "#3d0f30", fontWeight: overdue ? 700 : 400, whiteSpace: "nowrap" }}>
                     {c.dueDate.toLocaleDateString("es-CO")}
                   </td>

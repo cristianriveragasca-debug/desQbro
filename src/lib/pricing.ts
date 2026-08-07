@@ -18,6 +18,10 @@ export function getPlanPrice(program: string, planType: string): number {
   return PROGRAM_PLAN_PRICE[program]?.[planType] ?? PLAN_PRICE[planType] ?? 0;
 }
 
+export function getEffectivePlanAmount(program: string, planType: string, customAmount?: number | null): number {
+  return customAmount ?? getPlanPrice(program, planType);
+}
+
 export const ONE_TIME_FEES: { key: string; label: string; amount: number; programs: string[] }[] = [
   { key: "inscripcion", label: "Inscripción / matrícula anual", amount: 50000, programs: ["GUAGUAS_SOCCER"] },
   { key: "uniforme", label: "Uniforme", amount: 85000, programs: ["GUAGUAS_SOCCER"] },
@@ -54,9 +58,10 @@ export function generateInstallments(
   program: string,
   planType: string,
   installments: number,
-  paymentDate: Date
+  paymentDate: Date,
+  customAmount?: number | null
 ): GeneratedInstallment[] {
-  const total = getPlanPrice(program, planType);
+  const total = customAmount ?? getPlanPrice(program, planType);
   const months = PLAN_MONTHS[planType] ?? 1;
   const label = PLAN_LABEL[planType] ?? "Plan";
   const n = Math.max(installments, 1);

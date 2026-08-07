@@ -56,6 +56,9 @@ function buildData(formData: FormData) {
 
   const fees = ONE_TIME_FEES.filter((f) => formData.get(`fee_${f.key}`) === "on");
 
+  const customAmountStr = String(formData.get("customAmount") ?? "").trim();
+  const customAmount = customAmountStr ? Number(customAmountStr) : null;
+
   return {
     fullName,
     phone,
@@ -66,6 +69,7 @@ function buildData(formData: FormData) {
     planType,
     paymentMode,
     installments,
+    customAmount: customAmount && customAmount > 0 ? customAmount : null,
     paymentDate,
     dueDate,
     status: parseStatus(formData.get("status")),
@@ -82,7 +86,13 @@ export async function createClient(formData: FormData) {
 
   const client = await prisma.client.create({ data: clientData });
 
-  const installments = generateInstallments(clientData.program, clientData.planType, clientData.installments, clientData.paymentDate);
+  const installments = generateInstallments(
+    clientData.program,
+    clientData.planType,
+    clientData.installments,
+    clientData.paymentDate,
+    clientData.customAmount
+  );
   await prisma.payment.createMany({
     data: [
       ...installments.map((inst) => ({
@@ -118,7 +128,13 @@ export async function updateClient(id: string, formData: FormData) {
 
   const existingPayments = await prisma.payment.count({ where: { clientId: id } });
   if (existingPayments === 0) {
-    const installments = generateInstallments(clientData.program, clientData.planType, clientData.installments, clientData.paymentDate);
+    const installments = generateInstallments(
+      clientData.program,
+      clientData.planType,
+      clientData.installments,
+      clientData.paymentDate,
+      clientData.customAmount
+    );
     await prisma.payment.createMany({
       data: [
         ...installments.map((inst) => ({
@@ -169,7 +185,8 @@ export async function renewMonthlyPayment(formData: FormData) {
   if (!client || client.planType !== "MENSUAL") return;
 
   const now = new Date();
-  const amount = generateInstallments(client.program, "MENSUAL", 1, now)[0].amount;
+  const amount = generateInstallments(client.program, "MENSUAL", 1, now, client.customAmount ? Number(client.customAmount) : null)[0]
+    .amount;
   const newDueDate = computeDueDate(now, "MENSUAL");
 
   await prisma.$transaction([

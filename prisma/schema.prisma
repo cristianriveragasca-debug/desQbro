@@ -93,6 +93,7 @@ model Client {
   planType     PlanType
   paymentMode  PaymentMode  @default(TOTAL)
   installments Int          @default(1)
+  customAmount Decimal?     @db.Decimal(10, 2)
   paymentDate  DateTime
   dueDate      DateTime
   status       ClientStatus @default(ACTIVO)

@@ -27,6 +27,7 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
           planType: client.planType,
           paymentMode: client.paymentMode,
           installments: client.installments,
+          customAmount: client.customAmount ? Number(client.customAmount) : null,
           paymentDate: toDateInputValue(client.paymentDate),
           status: client.status,
           notes: client.notes ?? "",
