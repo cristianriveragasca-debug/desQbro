@@ -193,7 +193,7 @@ export function ClientForm({
           {paymentMode === "CUOTAS" && (
             <Field label="Número de cuotas">
               <select name="installments" defaultValue={defaultValues?.installments ?? 2} style={input}>
-                {Array.from({ length: maxInstallments - 1 }, (_, i) => i + 2).map((n) => (
+                {Array.from({ length: maxInstallments }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
                     {n} cuotas
                   </option>
