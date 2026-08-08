@@ -44,6 +44,8 @@ export function ClientForm({
   const [planType, setPlanTypeState] = useState(defaultValues?.planType ?? "MENSUAL");
   const [paymentMode, setPaymentMode] = useState(defaultValues?.paymentMode ?? "TOTAL");
   const [paymentDate, setPaymentDate] = useState(defaultValues?.paymentDate ?? toDateInputValue(new Date()));
+  const [installmentsCount, setInstallmentsCount] = useState(defaultValues?.installments ?? 2);
+  const [cuotaAmounts, setCuotaAmounts] = useState<Record<number, string>>({});
 
   const onlyMonthly = PROGRAM_ONLY_MONTHLY[program] ?? false;
   const effectivePlanType = onlyMonthly ? "MENSUAL" : planType;
@@ -76,6 +78,11 @@ export function ClientForm({
   const maxInstallments = effectivePlanType === "SEMESTRAL" ? 3 : 2;
   const planPrice = getPlanPrice(program, effectivePlanType);
   const applicableFees = ONE_TIME_FEES.filter((f) => f.programs.includes(program));
+
+  const defaultCuotaAmount = Math.round(planPrice / installmentsCount / 1000) * 1000;
+  const cuotaTotal = Array.from({ length: installmentsCount }, (_, i) =>
+    Number(cuotaAmounts[i] || defaultCuotaAmount)
+  ).reduce((sum, n) => sum + n, 0);
 
   return (
     <form action={action} style={{ maxWidth: 560, background: "#fff", padding: "1.5rem", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
@@ -162,46 +169,78 @@ export function ClientForm({
         </Field>
       )}
 
-      <Field label="Valor personalizado para este cliente (opcional)">
-        <input
-          name="customAmount"
-          type="number"
-          min={0}
-          step={1000}
-          defaultValue={defaultValues?.customAmount ?? ""}
-          placeholder={`Estándar: ${money(planPrice)}`}
-          style={input}
-        />
-        <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 4 }}>
-          Déjalo vacío para cobrar el valor estándar del plan. Si escribes un valor, se usará ese monto (total del plan) en vez del estándar para este cliente.
-        </p>
-      </Field>
+      {(!showPaymentMode || paymentMode === "TOTAL") && (
+        <Field label="Valor personalizado para este cliente (opcional)">
+          <input
+            name="customAmount"
+            type="number"
+            min={0}
+            step={1000}
+            defaultValue={defaultValues?.customAmount ?? ""}
+            placeholder={`Estándar: ${money(planPrice)}`}
+            style={input}
+          />
+          <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 4 }}>
+            Déjalo vacío para cobrar el valor estándar del plan. Si escribes un valor, se usará ese monto (total del plan) en vez del estándar para este cliente.
+          </p>
+        </Field>
+      )}
 
       {showPaymentMode && (
-        <Row>
-          <Field label="Forma de pago *">
-            <select
-              name="paymentMode"
-              value={paymentMode}
-              onChange={(e) => setPaymentMode(e.target.value)}
-              style={input}
-            >
-              <option value="TOTAL">Pago total</option>
-              <option value="CUOTAS">Pago por cuotas</option>
-            </select>
-          </Field>
-          {paymentMode === "CUOTAS" && (
-            <Field label="Número de cuotas">
-              <select name="installments" defaultValue={defaultValues?.installments ?? 2} style={input}>
-                {Array.from({ length: maxInstallments }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n} cuotas
-                  </option>
-                ))}
+        <>
+          <Row>
+            <Field label="Forma de pago *">
+              <select
+                name="paymentMode"
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+                style={input}
+              >
+                <option value="TOTAL">Pago total</option>
+                <option value="CUOTAS">Pago por cuotas</option>
               </select>
             </Field>
+            {paymentMode === "CUOTAS" && (
+              <Field label="Número de cuotas">
+                <select
+                  name="installments"
+                  value={installmentsCount}
+                  onChange={(e) => setInstallmentsCount(Number(e.target.value))}
+                  style={input}
+                >
+                  {Array.from({ length: maxInstallments }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n} cuotas
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </Row>
+
+          {paymentMode === "CUOTAS" && (
+            <Field label={`Valor de cada cuota (puede ser desigual, ej. abonos parciales) — Total: ${money(cuotaTotal)}`}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {Array.from({ length: installmentsCount }, (_, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: "0.85rem", color: "#334155", width: 90 }}>
+                      Cuota {i + 1}{i === 0 ? " (hoy)" : ""}
+                    </span>
+                    <input
+                      name={`cuotaAmount_${i + 1}`}
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={cuotaAmounts[i] ?? defaultCuotaAmount}
+                      onChange={(e) => setCuotaAmounts((prev) => ({ ...prev, [i]: e.target.value }))}
+                      style={input}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Field>
           )}
-        </Row>
+        </>
       )}
       {(!showPaymentMode || paymentMode === "TOTAL") && <input type="hidden" name="installments" value={1} />}
 

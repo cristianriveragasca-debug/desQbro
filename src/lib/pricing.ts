@@ -59,12 +59,16 @@ export function generateInstallments(
   planType: string,
   installments: number,
   paymentDate: Date,
-  customAmount?: number | null
+  customAmount?: number | null,
+  explicitAmounts?: number[] | null
 ): GeneratedInstallment[] {
-  const total = customAmount ?? getPlanPrice(program, planType);
   const months = PLAN_MONTHS[planType] ?? 1;
   const label = PLAN_LABEL[planType] ?? "Plan";
-  const n = Math.max(installments, 1);
+  const n = explicitAmounts?.length ? explicitAmounts.length : Math.max(installments, 1);
+
+  const total = explicitAmounts?.length
+    ? explicitAmounts.reduce((sum, a) => sum + a, 0)
+    : customAmount ?? getPlanPrice(program, planType);
 
   const baseAmount = Math.floor(total / n / 1000) * 1000;
   const remainder = total - baseAmount * n;
@@ -75,7 +79,7 @@ export function generateInstallments(
     const dueDate = new Date(paymentDate);
     dueDate.setMonth(dueDate.getMonth() + Math.round(intervalMonths * i));
 
-    const amount = i === n - 1 ? baseAmount + remainder : baseAmount;
+    const amount = explicitAmounts?.length ? explicitAmounts[i] : i === n - 1 ? baseAmount + remainder : baseAmount;
     const concept = n === 1 ? label : `${label} - Cuota ${i + 1}/${n}`;
 
     return {

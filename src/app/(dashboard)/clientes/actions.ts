@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { computeDueDate } from "@/lib/dates";
-import { generateInstallments, ONE_TIME_FEES, PROGRAM_ONLY_MONTHLY } from "@/lib/pricing";
+import { generateInstallments, getPlanPrice, ONE_TIME_FEES, PROGRAM_ONLY_MONTHLY } from "@/lib/pricing";
 
 function parseProgram(value: FormDataEntryValue | null): "DESQBRO_BEBES" | "DESQBRO_AQUA" | "GUAGUAS_SOCCER" {
   if (value === "DESQBRO_AQUA" || value === "GUAGUAS_SOCCER") return value;
@@ -59,6 +59,18 @@ function buildData(formData: FormData) {
   const customAmountStr = String(formData.get("customAmount") ?? "").trim();
   const customAmount = customAmountStr ? Number(customAmountStr) : null;
 
+  let cuotaAmounts: number[] | null = null;
+  if (paymentMode === "CUOTAS" && installments > 0) {
+    const amounts = Array.from({ length: installments }, (_, i) => {
+      const raw = String(formData.get(`cuotaAmount_${i + 1}`) ?? "").trim();
+      return raw ? Number(raw) : NaN;
+    });
+    if (amounts.every((a) => !isNaN(a) && a >= 0)) cuotaAmounts = amounts;
+  }
+  const cuotaTotal = cuotaAmounts ? cuotaAmounts.reduce((sum, a) => sum + a, 0) : null;
+  const rawTotal = cuotaTotal ?? (customAmount && customAmount > 0 ? customAmount : null);
+  const resolvedCustomAmount = rawTotal !== null && rawTotal !== getPlanPrice(program, planType) ? rawTotal : null;
+
   return {
     fullName,
     phone,
@@ -69,7 +81,8 @@ function buildData(formData: FormData) {
     planType,
     paymentMode,
     installments,
-    customAmount: customAmount && customAmount > 0 ? customAmount : null,
+    customAmount: resolvedCustomAmount,
+    cuotaAmounts,
     paymentDate,
     dueDate,
     status: parseStatus(formData.get("status")),
@@ -82,7 +95,7 @@ export async function createClient(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { fees, ...clientData } = buildData(formData);
+  const { fees, cuotaAmounts, ...clientData } = buildData(formData);
 
   const client = await prisma.client.create({ data: clientData });
 
@@ -91,7 +104,8 @@ export async function createClient(formData: FormData) {
     clientData.planType,
     clientData.installments,
     clientData.paymentDate,
-    clientData.customAmount
+    clientData.customAmount,
+    cuotaAmounts
   );
   await prisma.payment.createMany({
     data: [
@@ -123,7 +137,7 @@ export async function updateClient(id: string, formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { fees, ...clientData } = buildData(formData);
+  const { fees, cuotaAmounts, ...clientData } = buildData(formData);
   await prisma.client.update({ where: { id }, data: clientData });
 
   const existingPayments = await prisma.payment.count({ where: { clientId: id } });
@@ -133,7 +147,8 @@ export async function updateClient(id: string, formData: FormData) {
       clientData.planType,
       clientData.installments,
       clientData.paymentDate,
-      clientData.customAmount
+      clientData.customAmount,
+      cuotaAmounts
     );
     await prisma.payment.createMany({
       data: [
