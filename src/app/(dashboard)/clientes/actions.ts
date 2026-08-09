@@ -25,19 +25,30 @@ function parseStatus(value: FormDataEntryValue | null): "ACTIVO" | "INACTIVO" {
   return value === "INACTIVO" ? "INACTIVO" : "ACTIVO";
 }
 
-function buildData(formData: FormData) {
+function buildClientData(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const guardianName = String(formData.get("guardianName") ?? "").trim();
   const birthDateStr = String(formData.get("birthDate") ?? "");
-  const paymentDateStr = String(formData.get("paymentDate") ?? "");
 
   if (!fullName || !phone || !guardianName) throw new Error("Nombre, acudiente y teléfono son obligatorios");
   if (!birthDateStr) throw new Error("La fecha de nacimiento es obligatoria");
-  if (!paymentDateStr) throw new Error("La fecha de pago es obligatoria");
 
-  const birthDate = new Date(birthDateStr);
+  return {
+    fullName,
+    phone,
+    guardianName,
+    email: String(formData.get("email") ?? "").trim() || null,
+    birthDate: new Date(birthDateStr),
+    notes: String(formData.get("notes") ?? "").trim() || null,
+  };
+}
+
+function buildSubscriptionData(formData: FormData) {
+  const paymentDateStr = String(formData.get("paymentDate") ?? "");
+  if (!paymentDateStr) throw new Error("La fecha de pago es obligatoria");
   const paymentDate = new Date(paymentDateStr);
+
   const program = parseProgram(formData.get("program"));
   let planType = parsePlanType(formData.get("planType"));
   if (PROGRAM_ONLY_MONTHLY[program]) planType = "MENSUAL";
@@ -53,7 +64,6 @@ function buildData(formData: FormData) {
   }
 
   const dueDate = computeDueDate(paymentDate, planType);
-
   const fees = ONE_TIME_FEES.filter((f) => formData.get(`fee_${f.key}`) === "on");
 
   const customAmountStr = String(formData.get("customAmount") ?? "").trim();
@@ -67,50 +77,45 @@ function buildData(formData: FormData) {
     });
     if (amounts.every((a) => !isNaN(a) && a >= 0)) cuotaAmounts = amounts;
   }
+
   const cuotaTotal = cuotaAmounts ? cuotaAmounts.reduce((sum, a) => sum + a, 0) : null;
   const rawTotal = cuotaTotal ?? (customAmount && customAmount > 0 ? customAmount : null);
   const resolvedCustomAmount = rawTotal !== null && rawTotal !== getPlanPrice(program, planType) ? rawTotal : null;
 
   return {
-    fullName,
-    phone,
-    guardianName,
-    email: String(formData.get("email") ?? "").trim() || null,
-    birthDate,
     program,
     planType,
     paymentMode,
     installments,
     customAmount: resolvedCustomAmount,
-    cuotaAmounts,
     paymentDate,
     dueDate,
     status: parseStatus(formData.get("status")),
-    notes: String(formData.get("notes") ?? "").trim() || null,
     fees,
+    cuotaAmounts,
   };
 }
 
-export async function createClient(formData: FormData) {
-  const session = await auth();
-  if (!session) redirect("/login");
+async function createSubscriptionWithPayments(clientId: string, formData: FormData) {
+  const { fees, cuotaAmounts, ...subscriptionData } = buildSubscriptionData(formData);
 
-  const { fees, cuotaAmounts, ...clientData } = buildData(formData);
-
-  const client = await prisma.client.create({ data: clientData });
+  const subscription = await prisma.programSubscription.create({
+    data: { ...subscriptionData, clientId },
+  });
 
   const installments = generateInstallments(
-    clientData.program,
-    clientData.planType,
-    clientData.installments,
-    clientData.paymentDate,
-    clientData.customAmount,
+    subscriptionData.program,
+    subscriptionData.planType,
+    subscriptionData.installments,
+    subscriptionData.paymentDate,
+    subscriptionData.customAmount,
     cuotaAmounts
   );
+
   await prisma.payment.createMany({
     data: [
       ...installments.map((inst) => ({
-        clientId: client.id,
+        subscriptionId: subscription.id,
         amount: inst.amount,
         concept: inst.concept,
         status: inst.status,
@@ -118,15 +123,26 @@ export async function createClient(formData: FormData) {
         paidAt: inst.paidAt,
       })),
       ...fees.map((f) => ({
-        clientId: client.id,
+        subscriptionId: subscription.id,
         amount: f.amount,
         concept: f.label,
         status: "PAGADO" as const,
-        dueDate: clientData.paymentDate,
-        paidAt: clientData.paymentDate,
+        dueDate: subscriptionData.paymentDate,
+        paidAt: subscriptionData.paymentDate,
       })),
     ],
   });
+
+  return subscription;
+}
+
+export async function createClient(formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const clientData = buildClientData(formData);
+  const client = await prisma.client.create({ data: clientData });
+  await createSubscriptionWithPayments(client.id, formData);
 
   revalidatePath("/clientes");
   revalidatePath("/financiero");
@@ -137,43 +153,11 @@ export async function updateClient(id: string, formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { fees, cuotaAmounts, ...clientData } = buildData(formData);
+  const clientData = buildClientData(formData);
   await prisma.client.update({ where: { id }, data: clientData });
 
-  const existingPayments = await prisma.payment.count({ where: { clientId: id } });
-  if (existingPayments === 0) {
-    const installments = generateInstallments(
-      clientData.program,
-      clientData.planType,
-      clientData.installments,
-      clientData.paymentDate,
-      clientData.customAmount,
-      cuotaAmounts
-    );
-    await prisma.payment.createMany({
-      data: [
-        ...installments.map((inst) => ({
-          clientId: id,
-          amount: inst.amount,
-          concept: inst.concept,
-          status: inst.status,
-          dueDate: inst.dueDate,
-          paidAt: inst.paidAt,
-        })),
-        ...fees.map((f) => ({
-          clientId: id,
-          amount: f.amount,
-          concept: f.label,
-          status: "PAGADO" as const,
-          dueDate: clientData.paymentDate,
-          paidAt: clientData.paymentDate,
-        })),
-      ],
-    });
-  }
-
   revalidatePath("/clientes");
-  revalidatePath("/financiero");
+  revalidatePath(`/clientes/${id}`);
   redirect("/clientes");
 }
 
@@ -189,6 +173,38 @@ export async function deleteClient(formData: FormData) {
   revalidatePath("/financiero");
 }
 
+export async function addProgramSubscription(clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const program = parseProgram(formData.get("program"));
+  const existing = await prisma.programSubscription.findUnique({
+    where: { clientId_program: { clientId, program } },
+  });
+  if (existing) throw new Error("Este cliente ya está inscrito en ese programa.");
+
+  await createSubscriptionWithPayments(clientId, formData);
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidatePath("/financiero");
+  redirect(`/clientes/${clientId}`);
+}
+
+export async function deleteProgramSubscription(formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const id = String(formData.get("id") ?? "");
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!id) return;
+
+  await prisma.programSubscription.delete({ where: { id } });
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidatePath("/financiero");
+}
+
 export async function renewMonthlyPayment(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -196,18 +212,23 @@ export async function renewMonthlyPayment(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  const client = await prisma.client.findUnique({ where: { id } });
-  if (!client || client.planType !== "MENSUAL") return;
+  const subscription = await prisma.programSubscription.findUnique({ where: { id } });
+  if (!subscription || subscription.planType !== "MENSUAL") return;
 
   const now = new Date();
-  const amount = generateInstallments(client.program, "MENSUAL", 1, now, client.customAmount ? Number(client.customAmount) : null)[0]
-    .amount;
+  const amount = generateInstallments(
+    subscription.program,
+    "MENSUAL",
+    1,
+    now,
+    subscription.customAmount ? Number(subscription.customAmount) : null
+  )[0].amount;
   const newDueDate = computeDueDate(now, "MENSUAL");
 
   await prisma.$transaction([
     prisma.payment.create({
       data: {
-        clientId: id,
+        subscriptionId: id,
         amount,
         concept: "Plan Mensual - Renovación",
         status: "PAGADO",
@@ -215,7 +236,7 @@ export async function renewMonthlyPayment(formData: FormData) {
         paidAt: now,
       },
     }),
-    prisma.client.update({
+    prisma.programSubscription.update({
       where: { id },
       data: { paymentDate: now, dueDate: newDueDate, status: "ACTIVO" },
     }),

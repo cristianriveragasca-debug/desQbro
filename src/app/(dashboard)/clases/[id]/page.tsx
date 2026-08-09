@@ -15,7 +15,8 @@ export default async function ClaseDetallePage({ params }: { params: Promise<{ i
 
   const enrolledIds = classGroup.enrollments.map((e) => e.clientId);
   const availableClients = await prisma.client.findMany({
-    where: { id: { notIn: enrolledIds }, status: { not: "INACTIVO" } },
+    where: { id: { notIn: enrolledIds }, subscriptions: { some: { status: { not: "INACTIVO" } } } },
+    include: { subscriptions: { select: { program: true } } },
     orderBy: { fullName: "asc" },
   });
 
@@ -76,7 +77,7 @@ export default async function ClaseDetallePage({ params }: { params: Promise<{ i
                 <select name="clientId" required style={{ flex: 1, padding: "0.5rem", borderRadius: 8, border: "1px solid #cbd5e1" }}>
                   {availableClients.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.fullName} ({PROGRAM_LABEL[c.program]})
+                      {c.fullName} ({c.subscriptions.map((s) => PROGRAM_LABEL[s.program]).join(", ")})
                     </option>
                   ))}
                 </select>

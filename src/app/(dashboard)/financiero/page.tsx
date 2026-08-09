@@ -25,7 +25,7 @@ export default async function FinancieroPage() {
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const payments = await prisma.payment.findMany({
-    include: { client: { select: { fullName: true, program: true } } },
+    include: { subscription: { include: { client: { select: { fullName: true } } } } },
     orderBy: { dueDate: "asc" },
   });
 
@@ -38,12 +38,13 @@ export default async function FinancieroPage() {
 
   for (const p of payments) {
     const amount = Number(p.amount);
+    const program = p.subscription.program;
     if (p.status === "PAGADO") {
       recaudadoTotal += amount;
-      byProgram[p.client.program] = (byProgram[p.client.program] ?? 0) + amount;
+      byProgram[program] = (byProgram[program] ?? 0) + amount;
       if (p.paidAt && p.paidAt >= startOfMonth) {
         recaudadoMes += amount;
-        mesByProgram[p.client.program] = (mesByProgram[p.client.program] ?? 0) + amount;
+        mesByProgram[program] = (mesByProgram[program] ?? 0) + amount;
       }
     } else if (p.status === "PENDIENTE") {
       if (p.dueDate < today) vencido += amount;
@@ -80,24 +81,24 @@ export default async function FinancieroPage() {
 
   // Caja anticipada: dinero ya recibido de planes trimestrales/semestrales
   // que corresponde a meses futuros aún no "consumidos".
-  const advanceClients = await prisma.client.findMany({
+  const advanceSubscriptions = await prisma.programSubscription.findMany({
     where: { planType: { in: ["TRIMESTRAL", "SEMESTRAL"] }, status: { not: "INACTIVO" } },
-    include: { payments: { where: { status: "PAGADO" } } },
+    include: { client: { select: { fullName: true } }, payments: { where: { status: "PAGADO" } } },
   });
 
-  const advanceRows = advanceClients
-    .map((c) => {
-      const totalPaid = c.payments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const months = PLAN_MONTHS[c.planType] ?? 1;
-      const planTotal = c.customAmount ? Number(c.customAmount) : getPlanPrice(c.program, c.planType);
+  const advanceRows = advanceSubscriptions
+    .map((sub) => {
+      const totalPaid = sub.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const months = PLAN_MONTHS[sub.planType] ?? 1;
+      const planTotal = sub.customAmount ? Number(sub.customAmount) : getPlanPrice(sub.program, sub.planType);
       const monthlyEquivalent = planTotal / months;
-      const elapsed = Math.min(monthsElapsed(c.paymentDate, today), months);
+      const elapsed = Math.min(monthsElapsed(sub.paymentDate, today), months);
       const recognized = Math.min(monthlyEquivalent * elapsed, totalPaid);
       const advance = Math.max(totalPaid - recognized, 0);
       return {
-        id: c.id,
-        fullName: c.fullName,
-        planType: c.planType,
+        id: sub.id,
+        fullName: sub.client.fullName,
+        planType: sub.planType,
         totalPaid,
         monthlyEquivalent,
         advance,
@@ -288,7 +289,7 @@ export default async function FinancieroPage() {
               const overdue = p.dueDate < today;
               return (
                 <tr key={p.id} style={{ borderTop: "1px solid #e2e8f0" }}>
-                  <td style={td}>{p.client.fullName}</td>
+                  <td style={td}>{p.subscription.client.fullName}</td>
                   <td style={td}>{p.concept}</td>
                   <td style={td}>{money(Number(p.amount))}</td>
                   <td style={{ ...td, whiteSpace: "nowrap", color: overdue ? "#dc2626" : "#3d0f30", fontWeight: overdue ? 700 : 400 }}>
@@ -356,7 +357,7 @@ export default async function FinancieroPage() {
             )}
             {recentPaid.map((p) => (
               <tr key={p.id} style={{ borderTop: "1px solid #e2e8f0" }}>
-                <td style={td}>{p.client.fullName}</td>
+                <td style={td}>{p.subscription.client.fullName}</td>
                 <td style={td}>{p.concept}</td>
                 <td style={td}>{money(Number(p.amount))}</td>
                 <td style={{ ...td, whiteSpace: "nowrap" }}>{p.paidAt?.toLocaleDateString("es-CO")}</td>

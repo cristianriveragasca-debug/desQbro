@@ -5,19 +5,19 @@ export default async function HomePage() {
 
   const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer] = await Promise.all([
     prisma.client.count(),
-    prisma.client.count({ where: { status: { not: "INACTIVO" }, dueDate: { gte: today } } }),
-    prisma.client.count({ where: { status: { not: "INACTIVO" }, dueDate: { lt: today } } }),
-    prisma.client.count({ where: { status: "INACTIVO" } }),
-    prisma.client.count({ where: { program: "DESQBRO_BEBES" } }),
-    prisma.client.count({ where: { program: "DESQBRO_AQUA" } }),
-    prisma.client.count({ where: { program: "GUAGUAS_SOCCER" } }),
+    prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { gte: today } } }),
+    prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { lt: today } } }),
+    prisma.programSubscription.count({ where: { status: "INACTIVO" } }),
+    prisma.programSubscription.count({ where: { program: "DESQBRO_BEBES" } }),
+    prisma.programSubscription.count({ where: { program: "DESQBRO_AQUA" } }),
+    prisma.programSubscription.count({ where: { program: "GUAGUAS_SOCCER" } }),
   ]);
 
   const cards = [
     { label: "Total clientes", value: totalClientes, color: "#3d0f30" },
-    { label: "Activos", value: activos, color: "#166534" },
-    { label: "Vencidos", value: vencidos, color: "#dc2626" },
-    { label: "Inactivos", value: inactivos, color: "#64748b" },
+    { label: "Programas activos", value: activos, color: "#166534" },
+    { label: "Programas vencidos", value: vencidos, color: "#dc2626" },
+    { label: "Programas inactivos", value: inactivos, color: "#64748b" },
     { label: "desQbro Bebés", value: bebes, color: "#3d0f30" },
     { label: "desQbro AQUA", value: aqua, color: "#3d0f30" },
     { label: "Güipas Soccer", value: soccer, color: "#3d0f30" },
