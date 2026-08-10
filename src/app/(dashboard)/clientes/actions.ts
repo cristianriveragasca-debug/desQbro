@@ -191,6 +191,30 @@ export async function addProgramSubscription(clientId: string, formData: FormDat
   redirect(`/clientes/${clientId}`);
 }
 
+export async function updateProgramSubscription(id: string, clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const { fees, cuotaAmounts, ...subscriptionData } = buildSubscriptionData(formData);
+
+  const conflict = await prisma.programSubscription.findUnique({
+    where: { clientId_program: { clientId, program: subscriptionData.program } },
+  });
+  if (conflict && conflict.id !== id) {
+    throw new Error("Este cliente ya está inscrito en ese programa.");
+  }
+
+  await prisma.programSubscription.update({
+    where: { id },
+    data: subscriptionData,
+  });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidatePath("/financiero");
+  redirect(`/clientes/${clientId}`);
+}
+
 export async function deleteProgramSubscription(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");

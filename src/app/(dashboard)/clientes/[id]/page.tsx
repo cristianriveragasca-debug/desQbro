@@ -141,6 +141,12 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                     </button>
                   </form>
                 )}
+                <Link
+                  href={`/clientes/${client.id}/programas/${sub.id}/editar`}
+                  style={{ color: "#5c1a4a", fontWeight: 600, fontSize: "0.8rem" }}
+                >
+                  Editar
+                </Link>
                 <form action={deleteProgramSubscription}>
                   <input type="hidden" name="id" value={sub.id} />
                   <input type="hidden" name="clientId" value={client.id} />
