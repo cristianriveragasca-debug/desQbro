@@ -25,8 +25,29 @@ const STATUS_COLOR: Record<string, { bg: string; fg: string }> = {
   INACTIVO: { bg: "#f1f5f9", fg: "#64748b" },
 };
 
-export default async function ClientesPage() {
+export default async function ClientesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; program?: string }>;
+}) {
+  const { q, program } = await searchParams;
+  const query = (q ?? "").trim();
+
   const clients = await prisma.client.findMany({
+    where: {
+      AND: [
+        query
+          ? {
+              OR: [
+                { fullName: { contains: query, mode: "insensitive" } },
+                { guardianName: { contains: query, mode: "insensitive" } },
+                { phone: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        program ? { subscriptions: { some: { program: program as never } } } : {},
+      ],
+    },
     include: { subscriptions: { orderBy: { createdAt: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
@@ -34,7 +55,7 @@ export default async function ClientesPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <h1 style={{ margin: 0 }}>Clientes</h1>
         <Link
           href="/clientes/nuevo"
@@ -51,6 +72,69 @@ export default async function ClientesPage() {
           + Nuevo cliente
         </Link>
       </div>
+
+      <form method="get" style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
+        <div>
+          <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" }}>Buscar</label>
+          <input
+            type="text"
+            name="q"
+            defaultValue={query}
+            placeholder="Nombre, acudiente o teléfono"
+            style={{
+              padding: "0.5rem 0.75rem",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              fontSize: "0.9rem",
+              height: 40,
+              boxSizing: "border-box",
+              minWidth: 220,
+            }}
+          />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" }}>Programa</label>
+          <select
+            name="program"
+            defaultValue={program ?? ""}
+            style={{
+              padding: "0.5rem 0.75rem",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              fontSize: "0.9rem",
+              height: 40,
+              boxSizing: "border-box",
+            }}
+          >
+            <option value="">Todos los programas</option>
+            {Object.entries(PROGRAM_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          style={{
+            background: "#5c1a4a",
+            color: "#fff",
+            border: "none",
+            padding: "0.6rem 1.25rem",
+            borderRadius: 8,
+            fontWeight: 700,
+            cursor: "pointer",
+            height: 40,
+          }}
+        >
+          Filtrar
+        </button>
+        {(query || program) && (
+          <Link href="/clientes" style={{ color: "#5c1a4a", fontSize: "0.85rem", height: 40, display: "flex", alignItems: "center" }}>
+            Limpiar
+          </Link>
+        )}
+      </form>
 
       <div className="table-scroll" style={{ marginTop: 24, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
@@ -76,7 +160,9 @@ export default async function ClientesPage() {
               </tr>
             )}
             {clients.map((c) => {
-              if (c.subscriptions.length === 0) {
+              const visibleSubscriptions = program ? c.subscriptions.filter((s) => s.program === program) : c.subscriptions;
+
+              if (visibleSubscriptions.length === 0) {
                 return (
                   <tr key={c.id} style={{ borderTop: "1px solid #e2e8f0" }}>
                     <td style={td}>
@@ -100,7 +186,7 @@ export default async function ClientesPage() {
                 );
               }
 
-              return c.subscriptions.map((sub, idx) => {
+              return visibleSubscriptions.map((sub, idx) => {
                 const overdue = sub.dueDate < today;
                 const effectiveStatus = getEffectiveStatus(sub.status, sub.dueDate, today);
                 const statusColor = STATUS_COLOR[effectiveStatus];
