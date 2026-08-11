@@ -3,11 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { markAsPaid } from "./actions";
 import { CASH_DISTRIBUTION, PLAN_LABEL, PLAN_MONTHS, getPlanPrice } from "@/lib/pricing";
 import { EXPENSE_CATEGORY_LABEL } from "@/lib/expenses";
+import { getEffectiveStatus } from "@/lib/status";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
   DESQBRO_AQUA: "desQbro AQUA",
   GUAGUAS_SOCCER: "Güipas Soccer",
+};
+
+const STATUS_ROW_LABEL: Record<string, string> = {
+  ACTIVO: "Activo",
+  VENCIDO: "Vencido",
+  INACTIVO: "Inactivo",
+};
+const STATUS_ROW_COLOR: Record<string, { bg: string; fg: string }> = {
+  ACTIVO: { bg: "#dcfce7", fg: "#166534" },
+  VENCIDO: { bg: "#fee2e2", fg: "#dc2626" },
+  INACTIVO: { bg: "#f1f5f9", fg: "#64748b" },
 };
 
 function monthsElapsed(from: Date, to: Date): number {
@@ -20,7 +32,13 @@ function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 }
 
-export default async function FinancieroPage() {
+export default async function FinancieroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ programa?: string }>;
+}) {
+  const { programa } = await searchParams;
+  const selectedProgram = programa && programa in PROGRAM_LABEL ? programa : Object.keys(PROGRAM_LABEL)[0];
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -109,6 +127,38 @@ export default async function FinancieroPage() {
   const totalAdvance = advanceRows.reduce((sum, r) => sum + r.advance, 0);
   const totalMonthlyEquivalent = advanceRows.reduce((sum, r) => sum + r.monthlyEquivalent, 0);
 
+  // Estado de pago por programa: quién ha pagado y quién no, filtrable por programa.
+  const programSubscriptions = await prisma.programSubscription.findMany({
+    where: { program: selectedProgram as never },
+    include: {
+      client: { select: { id: true, fullName: true, phone: true } },
+      payments: { orderBy: { dueDate: "desc" } },
+    },
+    orderBy: { client: { fullName: "asc" } },
+  });
+
+  const programRows = programSubscriptions.map((sub) => {
+    const lastPaid = sub.payments.find((p) => p.status === "PAGADO") ?? null;
+    const hasPending = sub.payments.some((p) => p.status === "PENDIENTE");
+    const effectiveStatus = getEffectiveStatus(sub.status, sub.dueDate, today);
+    return {
+      subscriptionId: sub.id,
+      clientId: sub.client.id,
+      fullName: sub.client.fullName,
+      phone: sub.client.phone,
+      planType: sub.planType,
+      dueDate: sub.dueDate,
+      effectiveStatus,
+      hasPending,
+      lastPaidAmount: lastPaid ? Number(lastPaid.amount) : null,
+      lastPaidAt: lastPaid?.paidAt ?? null,
+    };
+  });
+
+  const paidUpToDate = programRows.filter((r) => r.effectiveStatus === "ACTIVO" && !r.hasPending);
+  const withPending = programRows.filter((r) => r.hasPending);
+  const overdue = programRows.filter((r) => r.effectiveStatus === "VENCIDO");
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -139,6 +189,103 @@ export default async function FinancieroPage() {
             <div style={{ fontSize: "1.6rem", fontWeight: 700, color: c.color }}>{c.value}</div>
           </div>
         ))}
+      </div>
+
+      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Estado de pago por programa</h2>
+      <form method="get" style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
+        <div>
+          <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" }}>Programa</label>
+          <select
+            name="programa"
+            defaultValue={selectedProgram}
+            style={{ padding: "0.5rem 0.75rem", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: "0.9rem", height: 40, boxSizing: "border-box" }}
+          >
+            {Object.entries(PROGRAM_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          style={{ background: "#5c1a4a", color: "#fff", border: "none", padding: "0.6rem 1.25rem", borderRadius: 8, fontWeight: 700, cursor: "pointer", height: 40 }}
+        >
+          Ver
+        </button>
+      </form>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginTop: 12 }}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Al día</div>
+          <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#166534" }}>{paidUpToDate.length}</div>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Con cuotas pendientes</div>
+          <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#92400e" }}>{withPending.length}</div>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Vencidos</div>
+          <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#dc2626" }}>{overdue.length}</div>
+        </div>
+      </div>
+
+      <div className="table-scroll" style={{ marginTop: 12, background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Cliente</th>
+              <th style={th}>Teléfono</th>
+              <th style={th}>Plan</th>
+              <th style={th}>Último pago</th>
+              <th style={th}>Vence</th>
+              <th style={th}>Estado</th>
+              <th style={th}>Cuotas pendientes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {programRows.length === 0 && (
+              <tr>
+                <td colSpan={7} style={{ ...td, textAlign: "center", color: "#94a3b8" }}>
+                  Nadie inscrito en {PROGRAM_LABEL[selectedProgram]} todavía.
+                </td>
+              </tr>
+            )}
+            {programRows.map((r) => {
+              const color = STATUS_ROW_COLOR[r.effectiveStatus];
+              return (
+                <tr key={r.subscriptionId} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={td}>
+                    <Link href={`/clientes/${r.clientId}`} style={{ color: "#5c1a4a", fontWeight: 600 }}>
+                      {r.fullName}
+                    </Link>
+                  </td>
+                  <td style={td}>{r.phone}</td>
+                  <td style={td}>{PLAN_LABEL[r.planType]}</td>
+                  <td style={td}>
+                    {r.lastPaidAmount ? `${money(r.lastPaidAmount)} · ${r.lastPaidAt?.toLocaleDateString("es-CO")}` : "—"}
+                  </td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>{r.dueDate.toLocaleDateString("es-CO")}</td>
+                  <td style={td}>
+                    <span
+                      style={{
+                        background: color.bg,
+                        color: color.fg,
+                        padding: "0.2rem 0.6rem",
+                        borderRadius: 999,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {STATUS_ROW_LABEL[r.effectiveStatus]}
+                    </span>
+                  </td>
+                  <td style={td}>{r.hasPending ? "Sí" : "No"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Distribución de caja por programa (mes actual)</h2>
