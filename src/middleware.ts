@@ -6,20 +6,38 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
-  const isApiAuth = req.nextUrl.pathname.startsWith("/api/auth");
+  const role = (req.auth?.user as { role?: string } | undefined)?.role;
+  const isParent = role === "PARENT";
+  const path = req.nextUrl.pathname;
+
+  const isParentArea = path.startsWith("/brujula");
+  const isParentLogin = path === "/brujula/login";
+  const isStaffLogin = path === "/login";
+  const isApiAuth = path.startsWith("/api/auth");
 
   if (isApiAuth) return NextResponse.next();
 
-  if (!isLoggedIn && !isAuthPage) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    return NextResponse.redirect(loginUrl);
+  if (!isLoggedIn) {
+    if (isParentArea && !isParentLogin) {
+      return NextResponse.redirect(new URL("/brujula/login", req.nextUrl.origin));
+    }
+    if (!isParentArea && !isStaffLogin) {
+      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    }
+    return NextResponse.next();
   }
 
-  if (isLoggedIn && isAuthPage) {
+  if (isParent) {
+    if (!isParentArea || isParentLogin) {
+      return NextResponse.redirect(new URL("/brujula", req.nextUrl.origin));
+    }
+    return NextResponse.next();
+  }
+
+  // Staff/admin session
+  if (isParentArea || isStaffLogin) {
     return NextResponse.redirect(new URL("/", req.nextUrl.origin));
   }
-
   return NextResponse.next();
 });
 

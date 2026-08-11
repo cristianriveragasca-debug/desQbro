@@ -4,10 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { computeAge, formatAge } from "@/lib/dates";
 import { getEffectiveStatus } from "@/lib/status";
 import { addProgramSubscription, addSubscriptionPayment, deleteProgramSubscription, renewMonthlyPayment } from "../actions";
+import {
+  addCoachNote,
+  deleteCoachNote,
+  removeParentAccess,
+  setParentAccess,
+  updateProgressLevel,
+} from "../brujula-actions";
 import { SubscriptionFields } from "@/components/subscription-fields";
 import { submitButtonStyle } from "@/components/form-ui";
 import { toDateInputValue } from "@/lib/dates";
 import { ONE_TIME_FEES } from "@/lib/pricing";
+import { PROGRESS_BADGE, PROGRESS_LABEL, PROGRESS_LEVELS, progressPercent } from "@/lib/progress";
 
 function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -41,8 +49,12 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
   const client = await prisma.client.findUnique({
     where: { id },
     include: {
+      parentAccount: true,
       subscriptions: {
-        include: { payments: { orderBy: { dueDate: "asc" } } },
+        include: {
+          payments: { orderBy: { dueDate: "asc" } },
+          coachNotes: { orderBy: { date: "desc" } },
+        },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -51,6 +63,8 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
 
   const subscribedPrograms = client.subscriptions.map((s) => s.program);
   const addSubscription = addProgramSubscription.bind(null, client.id);
+  const setAccess = setParentAccess.bind(null, client.id);
+  const removeAccess = removeParentAccess.bind(null, client.id);
 
   return (
     <div>
@@ -73,6 +87,59 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
         >
           Editar datos
         </Link>
+      </div>
+
+      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Acceso a La Brújula (padres)</h2>
+      <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginTop: 12, maxWidth: 480 }}>
+        {client.parentAccount ? (
+          <>
+            <p style={{ fontSize: "0.9rem", color: "#166534", fontWeight: 600, margin: 0 }}>
+              ✓ Acceso activo con el teléfono {client.parentAccount.phone}
+            </p>
+            <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: 4 }}>
+              Comparte ese teléfono y la contraseña que definiste con el acudiente para que entre en{" "}
+              <strong>desqbro.online/brujula/login</strong>.
+            </p>
+            <form action={removeAccess} style={{ marginTop: 10 }}>
+              <button
+                type="submit"
+                style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.85rem" }}
+              >
+                Quitar acceso
+              </button>
+            </form>
+          </>
+        ) : (
+          <form action={setAccess} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={{ fontSize: "0.8rem", color: "#94a3b8", margin: 0 }}>
+              Crea un acceso para que el acudiente vea el progreso, asistencia y pagos de este niño en La Brújula.
+            </p>
+            <div className="form-row">
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" }}>Teléfono del padre</label>
+                <input
+                  name="parentPhone"
+                  required
+                  defaultValue={client.phone}
+                  style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" }}>Contraseña</label>
+                <input
+                  name="parentPassword"
+                  type="text"
+                  required
+                  minLength={4}
+                  style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
+            <button type="submit" style={{ ...submitButtonStyle, alignSelf: "flex-start" }}>
+              Crear acceso
+            </button>
+          </form>
+        )}
       </div>
 
       <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Programas inscritos</h2>
@@ -125,6 +192,41 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
               <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: 6 }}>
                 Vence: {sub.dueDate.toLocaleDateString("es-CO")} · Pagado: {pagado.length} cuota(s) · Pendiente: {pendiente.length} cuota(s)
               </p>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                <span style={{ fontSize: "1.3rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
+                <div style={{ flex: 1, maxWidth: 220 }}>
+                  <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: `${progressPercent(sub.progressLevel)}%`,
+                        background: "#ffc814",
+                        height: "100%",
+                        borderRadius: 999,
+                      }}
+                    />
+                  </div>
+                </div>
+                <form action={updateProgressLevel.bind(null, sub.id, client.id)} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <select
+                    name="progressLevel"
+                    defaultValue={sub.progressLevel}
+                    style={{ padding: "0.25rem 0.5rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
+                  >
+                    {PROGRESS_LEVELS.map((lvl) => (
+                      <option key={lvl} value={lvl}>
+                        {PROGRESS_LABEL[lvl]}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.75rem", cursor: "pointer", color: "#334155" }}
+                  >
+                    Guardar
+                  </button>
+                </form>
+              </div>
 
               <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
                 {sub.planType === "MENSUAL" && (
@@ -256,6 +358,70 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                     }}
                   >
                     Registrar cargo
+                  </button>
+                </form>
+              </details>
+
+              <details style={{ marginTop: 8 }}>
+                <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#5c1a4a", fontWeight: 600 }}>
+                  Notas del formador ({sub.coachNotes.length})
+                </summary>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {sub.coachNotes.length === 0 && <p style={{ fontSize: "0.8rem", color: "#94a3b8", margin: 0 }}>Sin notas aún.</p>}
+                  {sub.coachNotes.map((n) => (
+                    <div key={n.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{n.date.toLocaleDateString("es-CO")}</span>
+                        <form action={deleteCoachNote}>
+                          <input type="hidden" name="id" value={n.id} />
+                          <input type="hidden" name="clientId" value={client.id} />
+                          <button type="submit" style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.75rem" }}>
+                            Eliminar
+                          </button>
+                        </form>
+                      </div>
+                      <p style={{ fontSize: "0.85rem", color: "#3d0f30", margin: "4px 0 0" }}>{n.note}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <form
+                  action={addCoachNote.bind(null, sub.id, client.id)}
+                  style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 12 }}
+                >
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Fecha</label>
+                    <input
+                      name="date"
+                      type="date"
+                      required
+                      defaultValue={toDateInputValue(new Date())}
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Nota</label>
+                    <input
+                      name="note"
+                      required
+                      placeholder="Ej: Excelente actitud en clase, mejoró la técnica de..."
+                      style={{ width: "100%", padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{
+                      background: "#ffc814",
+                      color: "#3d0f30",
+                      border: "none",
+                      padding: "0.45rem 0.9rem",
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Agregar nota
                   </button>
                 </form>
               </details>

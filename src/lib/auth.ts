@@ -8,6 +8,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
+      id: "credentials",
       credentials: {
         email: {},
         password: {},
@@ -24,6 +25,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!valid) return null;
 
         return { id: user.id, name: user.name, email: user.email, role: user.role };
+      },
+    }),
+    Credentials({
+      id: "parent",
+      credentials: {
+        phone: {},
+        password: {},
+      },
+      authorize: async (credentials) => {
+        const phone = credentials?.phone as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!phone || !password) return null;
+
+        const account = await prisma.parentAccount.findUnique({ where: { phone } });
+        if (!account) return null;
+
+        const valid = await bcrypt.compare(password, account.passwordHash);
+        if (!valid) return null;
+
+        return { id: account.id, name: account.name ?? phone, role: "PARENT" };
       },
     }),
   ],
