@@ -9,6 +9,7 @@ import {
   deleteCoachNote,
   removeParentAccess,
   setParentAccess,
+  toggleSwimCriterion,
   updateProgressLevel,
 } from "../brujula-actions";
 import { SubscriptionFields } from "@/components/subscription-fields";
@@ -16,6 +17,8 @@ import { submitButtonStyle } from "@/components/form-ui";
 import { toDateInputValue } from "@/lib/dates";
 import { ONE_TIME_FEES } from "@/lib/pricing";
 import { PROGRESS_BADGE, PROGRESS_LABEL, PROGRESS_LEVELS, progressPercent } from "@/lib/progress";
+import { SWIM_CRITERIA, SWIM_TRANSITION_LABEL, countChecked, isChecklistChecked, type SwimLevelValue } from "@/lib/swim-progress";
+import { SwimTrack } from "@/components/swim-track";
 
 function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -198,40 +201,86 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                 Vence: {sub.dueDate.toLocaleDateString("es-CO")} · Pagado: {pagado.length} cuota(s) · Pendiente: {pendiente.length} cuota(s)
               </p>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-                <span style={{ fontSize: "1.3rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
-                <div style={{ flex: 1, maxWidth: 220 }}>
-                  <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
-                    <div
-                      style={{
-                        width: `${progressPercent(sub.progressLevel)}%`,
-                        background: "#ffc814",
-                        height: "100%",
-                        borderRadius: 999,
-                      }}
-                    />
-                  </div>
+              {sub.program === "DESQBRO_AQUA" ? (
+                <div style={{ marginTop: 12 }}>
+                  <SwimTrack level={sub.swimLevel as SwimLevelValue} />
+                  {sub.swimLevel !== "EGRESADO" ? (
+                    <div style={{ background: "#f8fafc", borderRadius: 8, padding: "0.75rem 0.9rem", marginTop: 10 }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#0369a1", marginBottom: 6 }}>
+                        Checklist: {SWIM_TRANSITION_LABEL[sub.swimLevel as SwimLevelValue]} · {countChecked(sub.swimChecklist, SWIM_CRITERIA[sub.swimLevel as SwimLevelValue])}/6 aprobados (se necesitan 4)
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {SWIM_CRITERIA[sub.swimLevel as SwimLevelValue].map((criterion) => {
+                          const checked = isChecklistChecked(sub.swimChecklist, criterion.key);
+                          return (
+                            <form key={criterion.key} action={toggleSwimCriterion.bind(null, sub.id, client.id)}>
+                              <input type="hidden" name="criterionKey" value={criterion.key} />
+                              <button
+                                type="submit"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  width: "100%",
+                                  textAlign: "left",
+                                  background: "none",
+                                  border: "none",
+                                  padding: "0.2rem 0",
+                                  cursor: "pointer",
+                                  fontSize: "0.85rem",
+                                  color: checked ? "#166534" : "#334155",
+                                }}
+                              >
+                                <span>{checked ? "☑" : "☐"}</span>
+                                <span style={{ textDecoration: checked ? "line-through" : "none" }}>{criterion.label}</span>
+                              </button>
+                            </form>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "0.8rem", color: "#166534", fontWeight: 600, marginTop: 8 }}>
+                      🏆 Nivel Expertos completado — egresado del programa.
+                    </p>
+                  )}
                 </div>
-                <form action={updateProgressLevel.bind(null, sub.id, client.id)} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <select
-                    name="progressLevel"
-                    defaultValue={sub.progressLevel}
-                    style={{ padding: "0.25rem 0.5rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
-                  >
-                    {PROGRESS_LEVELS.map((lvl) => (
-                      <option key={lvl} value={lvl}>
-                        {PROGRESS_LABEL[lvl]}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.75rem", cursor: "pointer", color: "#334155" }}
-                  >
-                    Guardar
-                  </button>
-                </form>
-              </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                  <span style={{ fontSize: "1.3rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
+                  <div style={{ flex: 1, maxWidth: 220 }}>
+                    <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          width: `${progressPercent(sub.progressLevel)}%`,
+                          background: "#ffc814",
+                          height: "100%",
+                          borderRadius: 999,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <form action={updateProgressLevel.bind(null, sub.id, client.id)} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <select
+                      name="progressLevel"
+                      defaultValue={sub.progressLevel}
+                      style={{ padding: "0.25rem 0.5rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
+                    >
+                      {PROGRESS_LEVELS.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {PROGRESS_LABEL[lvl]}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.75rem", cursor: "pointer", color: "#334155" }}
+                    >
+                      Guardar
+                    </button>
+                  </form>
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
                 {sub.planType === "MENSUAL" && (

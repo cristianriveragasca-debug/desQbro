@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
+import { SWIM_CRITERIA, countChecked, nextSwimLevel, type SwimLevelValue } from "@/lib/swim-progress";
 
 function parseProgressLevel(value: FormDataEntryValue | null): "INICIACION" | "BASICO" | "INTERMEDIO" | "AVANZADO" | "EXPERTO" {
   if (value === "BASICO" || value === "INTERMEDIO" || value === "AVANZADO" || value === "EXPERTO") return value;
@@ -48,6 +49,40 @@ export async function updateProgressLevel(subscriptionId: string, clientId: stri
   await prisma.programSubscription.update({ where: { id: subscriptionId }, data: { progressLevel } });
 
   revalidatePath(`/clientes/${clientId}`);
+}
+
+export async function toggleSwimCriterion(subscriptionId: string, clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const criterionKey = String(formData.get("criterionKey") ?? "");
+  if (!criterionKey) return;
+
+  const subscription = await prisma.programSubscription.findUnique({ where: { id: subscriptionId } });
+  if (!subscription) return;
+
+  const level = subscription.swimLevel as SwimLevelValue;
+  const criteria = SWIM_CRITERIA[level];
+  if (!criteria.some((c) => c.key === criterionKey)) return;
+
+  const currentChecklist = (subscription.swimChecklist as Record<string, boolean> | null) ?? {};
+  const wasChecked = currentChecklist[criterionKey] === true;
+  const updatedChecklist = { ...currentChecklist, [criterionKey]: !wasChecked };
+
+  const approvedCount = countChecked(updatedChecklist, criteria);
+  const promoted = approvedCount >= 4;
+  const target = promoted ? nextSwimLevel(level) : null;
+
+  await prisma.programSubscription.update({
+    where: { id: subscriptionId },
+    data: target
+      ? { swimLevel: target, swimChecklist: {} }
+      : { swimChecklist: updatedChecklist },
+  });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/brujula-admin/${clientId}`);
+  revalidatePath(`/brujula/${clientId}`);
 }
 
 export async function addCoachNote(subscriptionId: string, clientId: string, formData: FormData) {

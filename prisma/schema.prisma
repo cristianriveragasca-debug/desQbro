@@ -80,6 +80,13 @@ enum ProgressLevel {
   EXPERTO
 }
 
+enum SwimLevel {
+  EXPLORACION
+  DESARROLLO
+  EXPERTOS
+  EGRESADO
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -133,6 +140,8 @@ model ProgramSubscription {
   dueDate       DateTime
   status        ClientStatus  @default(ACTIVO)
   progressLevel ProgressLevel @default(INICIACION)
+  swimLevel     SwimLevel     @default(EXPLORACION)
+  swimChecklist Json          @default("{}")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

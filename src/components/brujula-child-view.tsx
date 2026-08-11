@@ -3,6 +3,8 @@ import { computeAge, formatAge } from "@/lib/dates";
 import { getEffectiveStatus } from "@/lib/status";
 import { DAY_LABELS } from "@/lib/schedule";
 import { PROGRESS_BADGE, PROGRESS_LABEL, progressPercent } from "@/lib/progress";
+import { SwimTrack } from "@/components/swim-track";
+import type { SwimLevelValue } from "@/lib/swim-progress";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -75,15 +77,19 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
                 Plan {PLAN_LABEL[sub.planType]} · Próximo pago: {nextPending ? `${money(Number(nextPending.amount))} el ${nextPending.dueDate.toLocaleDateString("es-CO")}` : `al día (vence ${sub.dueDate.toLocaleDateString("es-CO")})`}
               </p>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-                <span style={{ fontSize: "1.5rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: 4 }}>{PROGRESS_LABEL[sub.progressLevel]}</div>
-                  <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
-                    <div style={{ width: `${progressPercent(sub.progressLevel)}%`, background: "#ffc814", height: "100%", borderRadius: 999 }} />
+              {sub.program === "DESQBRO_AQUA" ? (
+                <SwimTrack level={sub.swimLevel as SwimLevelValue} />
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                  <span style={{ fontSize: "1.5rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: 4 }}>{PROGRESS_LABEL[sub.progressLevel]}</div>
+                    <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }}>
+                      <div style={{ width: `${progressPercent(sub.progressLevel)}%`, background: "#ffc814", height: "100%", borderRadius: 999 }} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {sub.coachNotes.length > 0 && (
                 <div style={{ marginTop: 12 }}>
