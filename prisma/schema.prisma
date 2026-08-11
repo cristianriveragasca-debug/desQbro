@@ -142,13 +142,45 @@ model ProgramSubscription {
   progressLevel ProgressLevel @default(INICIACION)
   swimLevel     SwimLevel     @default(EXPLORACION)
   swimChecklist Json          @default("{}")
+  soccerBadges  Json          @default("[]")
+  closingLetter String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  payments   Payment[]
-  coachNotes CoachNote[]
+  payments           Payment[]
+  coachNotes         CoachNote[]
+  monthlyEvaluations MonthlyEvaluation[]
+  portfolioMoments   PortfolioMoment[]
 
   @@unique([clientId, program])
+}
+
+model MonthlyEvaluation {
+  id              String              @id @default(cuid())
+  subscription    ProgramSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId  String
+  month           DateTime
+  skills          Json
+  sessionsAttended Int
+  sessionsTotal    Int
+  strength        String
+  focusArea       String
+  specialNote     String?
+  nextGoal        String
+  parentPhrase    String
+  createdAt       DateTime            @default(now())
+
+  @@unique([subscriptionId, month])
+}
+
+model PortfolioMoment {
+  id             String              @id @default(cuid())
+  subscription   ProgramSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  date           DateTime
+  title          String
+  description    String?
+  createdAt      DateTime            @default(now())
 }
 
 model CoachNote {

@@ -5,6 +5,7 @@ import { DAY_LABELS } from "@/lib/schedule";
 import { PROGRESS_BADGE, PROGRESS_LABEL, progressPercent } from "@/lib/progress";
 import { SwimTrack } from "@/components/swim-track";
 import type { SwimLevelValue } from "@/lib/swim-progress";
+import { GuipasBadges } from "@/components/guipas-badges";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -32,7 +33,12 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
     where: { id: clientId },
     include: {
       subscriptions: {
-        include: { payments: { orderBy: { dueDate: "desc" } }, coachNotes: { orderBy: { date: "desc" } } },
+        include: {
+          payments: { orderBy: { dueDate: "desc" } },
+          coachNotes: { orderBy: { date: "desc" } },
+          monthlyEvaluations: { orderBy: { month: "desc" }, take: 1 },
+          portfolioMoments: { orderBy: { date: "desc" } },
+        },
         orderBy: { createdAt: "asc" },
       },
       enrollments: { include: { classGroup: true } },
@@ -79,6 +85,26 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
 
               {sub.program === "DESQBRO_AQUA" ? (
                 <SwimTrack level={sub.swimLevel as SwimLevelValue} />
+              ) : sub.program === "GUAGUAS_SOCCER" ? (
+                <div style={{ marginTop: 10 }}>
+                  <GuipasBadges earned={(sub.soccerBadges as string[] | null) ?? []} />
+                  {sub.monthlyEvaluations[0] && (
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                        {sub.monthlyEvaluations[0].month.toLocaleDateString("es-CO", { year: "numeric", month: "long" })}
+                      </div>
+                      <div style={{ fontSize: "0.85rem", color: "#166534" }}>
+                        <strong>Lo que floreció:</strong> {sub.monthlyEvaluations[0].strength}
+                      </div>
+                      <div style={{ fontSize: "0.85rem", color: "#3d0f30" }}>
+                        <strong>Lo que estamos construyendo:</strong> {sub.monthlyEvaluations[0].focusArea}
+                      </div>
+                      <div style={{ fontSize: "0.85rem", color: "#5c1a4a", fontStyle: "italic" }}>
+                        &ldquo;{sub.monthlyEvaluations[0].parentPhrase}&rdquo;
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
                   <span style={{ fontSize: "1.5rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
@@ -88,6 +114,28 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
                       <div style={{ width: `${progressPercent(sub.progressLevel)}%`, background: "#ffc814", height: "100%", borderRadius: 999 }} />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {sub.program === "GUAGUAS_SOCCER" && sub.portfolioMoments.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#166534" }}>Portafolio · momentos destacados</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                    {sub.portfolioMoments.slice(0, 3).map((m) => (
+                      <div key={m.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{m.date.toLocaleDateString("es-CO")}</div>
+                        <div style={{ fontSize: "0.85rem", color: "#3d0f30", fontWeight: 600 }}>{m.title}</div>
+                        {m.description && <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.description}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sub.program === "GUAGUAS_SOCCER" && sub.closingLetter && (
+                <div style={{ marginTop: 12, background: "#fef9c3", borderRadius: 8, padding: "0.75rem 0.9rem" }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#854d0e", marginBottom: 4 }}>Carta del formador</div>
+                  <p style={{ fontSize: "0.85rem", color: "#3d0f30", whiteSpace: "pre-wrap", margin: 0 }}>{sub.closingLetter}</p>
                 </div>
               )}
 
