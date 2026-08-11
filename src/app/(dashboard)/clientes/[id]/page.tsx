@@ -3,9 +3,15 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { computeAge, formatAge } from "@/lib/dates";
 import { getEffectiveStatus } from "@/lib/status";
-import { addProgramSubscription, deleteProgramSubscription, renewMonthlyPayment } from "../actions";
+import { addProgramSubscription, addSubscriptionPayment, deleteProgramSubscription, renewMonthlyPayment } from "../actions";
 import { SubscriptionFields } from "@/components/subscription-fields";
 import { submitButtonStyle } from "@/components/form-ui";
+import { toDateInputValue } from "@/lib/dates";
+import { ONE_TIME_FEES } from "@/lib/pricing";
+
+function money(n: number) {
+  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+}
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -158,6 +164,101 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                   </button>
                 </form>
               </div>
+
+              <details style={{ marginTop: 10 }}>
+                <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#5c1a4a", fontWeight: 600 }}>
+                  Ver pagos ({sub.payments.length})
+                </summary>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {sub.payments.map((p) => (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "0.8rem",
+                        color: "#3d0f30",
+                        borderBottom: "1px solid #f1f5f9",
+                        padding: "2px 0",
+                      }}
+                    >
+                      <span>
+                        {p.concept} · {(p.paidAt ?? p.dueDate).toLocaleDateString("es-CO")}
+                      </span>
+                      <span style={{ fontWeight: 600, color: p.status === "PAGADO" ? "#166534" : "#92400e" }}>
+                        {money(Number(p.amount))} {p.status === "PENDIENTE" ? "(pendiente)" : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <form
+                  action={addSubscriptionPayment.bind(null, sub.id, client.id)}
+                  style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 12 }}
+                >
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Concepto</label>
+                    <input
+                      list={`conceptos-${sub.id}`}
+                      name="concept"
+                      required
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                    <datalist id={`conceptos-${sub.id}`}>
+                      {ONE_TIME_FEES.map((f) => (
+                        <option key={f.key} value={f.label} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Valor</label>
+                    <input
+                      name="amount"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      required
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem", width: 120 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Fecha</label>
+                    <input
+                      name="date"
+                      type="date"
+                      required
+                      defaultValue={toDateInputValue(new Date())}
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Estado</label>
+                    <select
+                      name="status"
+                      defaultValue="PAGADO"
+                      style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    >
+                      <option value="PAGADO">Pagado</option>
+                      <option value="PENDIENTE">Pendiente</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    style={{
+                      background: "#ffc814",
+                      color: "#3d0f30",
+                      border: "none",
+                      padding: "0.45rem 0.9rem",
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Registrar cargo
+                  </button>
+                </form>
+              </details>
             </div>
           );
         })}

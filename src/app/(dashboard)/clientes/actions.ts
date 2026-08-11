@@ -229,6 +229,36 @@ export async function deleteProgramSubscription(formData: FormData) {
   revalidatePath("/financiero");
 }
 
+export async function addSubscriptionPayment(subscriptionId: string, clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const concept = String(formData.get("concept") ?? "").trim();
+  const dateStr = String(formData.get("date") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  const status = formData.get("status") === "PENDIENTE" ? "PENDIENTE" : "PAGADO";
+
+  if (!concept) throw new Error("El concepto es obligatorio");
+  if (!dateStr) throw new Error("La fecha es obligatoria");
+  if (!amount || amount <= 0) throw new Error("El valor debe ser mayor a cero");
+
+  const date = new Date(dateStr);
+
+  await prisma.payment.create({
+    data: {
+      subscriptionId,
+      concept,
+      amount,
+      status,
+      dueDate: date,
+      paidAt: status === "PAGADO" ? date : null,
+    },
+  });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/financiero");
+}
+
 export async function renewMonthlyPayment(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
