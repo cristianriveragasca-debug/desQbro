@@ -10,7 +10,7 @@ export default auth((req) => {
   const isParent = role === "PARENT";
   const path = req.nextUrl.pathname;
 
-  const isParentArea = path.startsWith("/brujula");
+  const isParentArea = path === "/brujula" || path.startsWith("/brujula/");
   const isParentLogin = path === "/brujula/login";
   const isStaffLogin = path === "/login";
   const isApiAuth = path.startsWith("/api/auth");
