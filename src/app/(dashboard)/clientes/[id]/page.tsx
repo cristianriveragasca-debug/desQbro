@@ -89,7 +89,12 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
         </Link>
       </div>
 
-      <h2 style={{ fontSize: "1.1rem", marginTop: 32 }}>Acceso a La Brújula (padres)</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 32, flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ fontSize: "1.1rem", margin: 0 }}>Acceso a La Brújula (padres)</h2>
+        <Link href={`/brujula-admin/${client.id}`} style={{ color: "#5c1a4a", fontWeight: 600, fontSize: "0.85rem" }}>
+          Ver vista previa del panel →
+        </Link>
+      </div>
       <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginTop: 12, maxWidth: 480 }}>
         {client.parentAccount ? (
           <>
