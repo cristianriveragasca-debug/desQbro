@@ -27,8 +27,13 @@ export default async function BrujulaLayout({ children }: { children: React.Reac
           </div>
           <span style={{ color: "#fff", fontWeight: 700 }}>La Brújula</span>
         </Link>
-        <div style={{ width: 140 }}>
-          <SignOutButton callbackUrl="/brujula/login" />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <Link href="/brujula/cuenta" style={{ color: "#f1e6ee", fontSize: "0.85rem", textDecoration: "none" }}>
+            Mi cuenta
+          </Link>
+          <div style={{ width: 140 }}>
+            <SignOutButton callbackUrl="/brujula/login" />
+          </div>
         </div>
       </header>
       <main style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>{children}</main>

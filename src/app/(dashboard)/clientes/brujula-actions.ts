@@ -26,8 +26,8 @@ export async function setParentAccess(clientId: string, formData: FormData) {
 
   const existing = await prisma.parentAccount.findUnique({ where: { phone } });
   const account = existing
-    ? await prisma.parentAccount.update({ where: { phone }, data: { passwordHash } })
-    : await prisma.parentAccount.create({ data: { phone, passwordHash } });
+    ? await prisma.parentAccount.update({ where: { phone }, data: { passwordHash, passwordPlain: password } })
+    : await prisma.parentAccount.create({ data: { phone, passwordHash, passwordPlain: password } });
 
   await prisma.client.update({ where: { id: clientId }, data: { parentAccountId: account.id } });
 

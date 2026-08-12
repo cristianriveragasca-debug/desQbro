@@ -114,9 +114,13 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
             <p style={{ fontSize: "0.9rem", color: "#166534", fontWeight: 600, margin: 0 }}>
               ✓ Acceso activo con el teléfono {client.parentAccount.phone}
             </p>
+            <p style={{ fontSize: "0.85rem", color: "#3d0f30", marginTop: 6 }}>
+              Contraseña actual: <strong>{client.parentAccount.passwordPlain ?? "(definida antes de esta función, no visible)"}</strong>
+            </p>
             <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: 4 }}>
-              Comparte ese teléfono y la contraseña que definiste con el acudiente para que entre en{" "}
-              <strong>desqbro.online/brujula/login</strong>.
+              Comparte ese teléfono y la contraseña con el acudiente para que entre en{" "}
+              <strong>desqbro.online/brujula/login</strong>. El padre puede cambiarla desde &ldquo;Mi cuenta&rdquo; dentro de su portal —
+              si lo hace, se actualizará aquí automáticamente.
             </p>
             <form action={removeAccess} style={{ marginTop: 10 }}>
               <button
