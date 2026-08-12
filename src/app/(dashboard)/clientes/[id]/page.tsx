@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { computeAge, formatAge } from "@/lib/dates";
 import { getEffectiveStatus } from "@/lib/status";
-import { addProgramSubscription, addSubscriptionPayment, deleteProgramSubscription, renewMonthlyPayment } from "../actions";
+import {
+  addProgramSubscription,
+  addSubscriptionPayment,
+  deleteProgramSubscription,
+  deleteSubscriptionPayment,
+  renewMonthlyPayment,
+  updateSubscriptionPayment,
+} from "../actions";
 import {
   addCoachNote,
   deleteCoachNote,
@@ -330,26 +337,64 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                 <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#5c1a4a", fontWeight: 600 }}>
                   Ver pagos ({sub.payments.length})
                 </summary>
-                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                   {sub.payments.map((p) => (
-                    <div
+                    <form
                       key={p.id}
+                      action={updateSubscriptionPayment.bind(null, p.id, client.id)}
                       style={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "0.8rem",
-                        color: "#3d0f30",
+                        gap: 6,
+                        alignItems: "center",
+                        flexWrap: "wrap",
                         borderBottom: "1px solid #f1f5f9",
-                        padding: "2px 0",
+                        padding: "4px 0",
                       }}
                     >
-                      <span>
-                        {p.concept} · {(p.paidAt ?? p.dueDate).toLocaleDateString("es-CO")}
-                      </span>
-                      <span style={{ fontWeight: 600, color: p.status === "PAGADO" ? "#166534" : "#92400e" }}>
-                        {money(Number(p.amount))} {p.status === "PENDIENTE" ? "(pendiente)" : ""}
-                      </span>
-                    </div>
+                      <input
+                        name="concept"
+                        defaultValue={p.concept}
+                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", flex: "1 1 140px", minWidth: 120 }}
+                      />
+                      <input
+                        name="date"
+                        type="date"
+                        defaultValue={toDateInputValue(p.paidAt ?? p.dueDate)}
+                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
+                      />
+                      <input
+                        name="amount"
+                        type="number"
+                        min={0}
+                        step={1000}
+                        defaultValue={Number(p.amount)}
+                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", width: 100 }}
+                      />
+                      <select
+                        name="status"
+                        defaultValue={p.status}
+                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
+                      >
+                        <option value="PAGADO">Pagado</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                      </select>
+                      <button
+                        type="submit"
+                        style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.3rem 0.6rem", fontSize: "0.7rem", cursor: "pointer", color: "#334155" }}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="submit"
+                        formAction={deleteSubscriptionPayment}
+                        name="id"
+                        value={p.id}
+                        style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.7rem" }}
+                      >
+                        Eliminar
+                      </button>
+                      <input type="hidden" name="clientId" value={client.id} />
+                    </form>
                   ))}
                 </div>
 

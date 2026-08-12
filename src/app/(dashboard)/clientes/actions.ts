@@ -259,6 +259,54 @@ export async function addSubscriptionPayment(subscriptionId: string, clientId: s
   revalidatePath("/financiero");
 }
 
+export async function updateSubscriptionPayment(paymentId: string, clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const concept = String(formData.get("concept") ?? "").trim();
+  const dateStr = String(formData.get("date") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  const status = formData.get("status") === "PENDIENTE" ? "PENDIENTE" : "PAGADO";
+
+  if (!concept) throw new Error("El concepto es obligatorio");
+  if (!dateStr) throw new Error("La fecha es obligatoria");
+  if (!amount || amount <= 0) throw new Error("El valor debe ser mayor a cero");
+
+  const date = new Date(dateStr);
+
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      concept,
+      amount,
+      status,
+      dueDate: date,
+      paidAt: status === "PAGADO" ? date : null,
+    },
+  });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/financiero");
+  revalidatePath(`/brujula-admin/${clientId}`);
+  revalidatePath(`/brujula/${clientId}`);
+}
+
+export async function deleteSubscriptionPayment(formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const id = String(formData.get("id") ?? "");
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!id) return;
+
+  await prisma.payment.delete({ where: { id } });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/financiero");
+  revalidatePath(`/brujula-admin/${clientId}`);
+  revalidatePath(`/brujula/${clientId}`);
+}
+
 export async function renewMonthlyPayment(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
