@@ -27,7 +27,7 @@ export async function changeParentPassword(formData: FormData) {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await prisma.parentAccount.update({
     where: { id: userId },
-    data: { passwordHash, passwordPlain: newPassword },
+    data: { passwordHash },
   });
 
   revalidatePath("/brujula/cuenta");
