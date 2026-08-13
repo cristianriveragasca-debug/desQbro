@@ -296,26 +296,24 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
               )}
 
               <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-                {sub.planType === "MENSUAL" && (
-                  <form action={renewMonthlyPayment}>
-                    <input type="hidden" name="id" value={sub.id} />
-                    <button
-                      type="submit"
-                      style={{
-                        background: "#ecfdf5",
-                        color: "#166534",
-                        border: "1px solid #a7f3d0",
-                        padding: "0.3rem 0.7rem",
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Renovar pago
-                    </button>
-                  </form>
-                )}
+                <form action={renewMonthlyPayment}>
+                  <input type="hidden" name="id" value={sub.id} />
+                  <button
+                    type="submit"
+                    style={{
+                      background: "#ecfdf5",
+                      color: "#166534",
+                      border: "1px solid #a7f3d0",
+                      padding: "0.3rem 0.7rem",
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Renovar pago ({PLAN_LABEL[sub.planType]})
+                  </button>
+                </form>
                 <Link
                   href={`/clientes/${client.id}/programas/${sub.id}/editar`}
                   style={{ color: "#5c1a4a", fontWeight: 600, fontSize: "0.8rem" }}

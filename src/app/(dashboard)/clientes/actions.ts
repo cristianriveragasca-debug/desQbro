@@ -315,24 +315,25 @@ export async function renewMonthlyPayment(formData: FormData) {
   if (!id) return;
 
   const subscription = await prisma.programSubscription.findUnique({ where: { id } });
-  if (!subscription || subscription.planType !== "MENSUAL") return;
+  if (!subscription) return;
 
   const now = new Date();
   const amount = generateInstallments(
     subscription.program,
-    "MENSUAL",
+    subscription.planType,
     1,
     now,
     subscription.customAmount ? Number(subscription.customAmount) : null
   )[0].amount;
-  const newDueDate = computeDueDate(now, "MENSUAL");
+  const newDueDate = computeDueDate(now, subscription.planType);
+  const planLabel = subscription.planType === "MENSUAL" ? "Plan Mensual" : subscription.planType === "TRIMESTRAL" ? "Plan Trimestral" : "Plan Semestral";
 
   await prisma.$transaction([
     prisma.payment.create({
       data: {
         subscriptionId: id,
         amount,
-        concept: "Plan Mensual - Renovación",
+        concept: `${planLabel} - Renovación`,
         status: "PAGADO",
         dueDate: newDueDate,
         paidAt: now,
