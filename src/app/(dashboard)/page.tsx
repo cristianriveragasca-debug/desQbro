@@ -3,7 +3,18 @@ import { prisma } from "@/lib/prisma";
 export default async function HomePage() {
   const today = new Date();
 
-  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, mensual, trimestral, semestral] = await Promise.all([
+  const PROGRAMS = [
+    { key: "DESQBRO_BEBES", label: "desQbro Bebés" },
+    { key: "DESQBRO_AQUA", label: "desQbro AQUA" },
+    { key: "GUAGUAS_SOCCER", label: "Güipas Soccer" },
+  ] as const;
+  const PLAN_TYPES = [
+    { key: "MENSUAL", label: "Mensual" },
+    { key: "TRIMESTRAL", label: "Trimestral" },
+    { key: "SEMESTRAL", label: "Semestral" },
+  ] as const;
+
+  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, planByProgramCounts] = await Promise.all([
     prisma.client.count(),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { gte: today } } }),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { lt: today } } }),
@@ -11,9 +22,17 @@ export default async function HomePage() {
     prisma.programSubscription.count({ where: { program: "DESQBRO_BEBES" } }),
     prisma.programSubscription.count({ where: { program: "DESQBRO_AQUA" } }),
     prisma.programSubscription.count({ where: { program: "GUAGUAS_SOCCER" } }),
-    prisma.programSubscription.count({ where: { planType: "MENSUAL", status: { not: "INACTIVO" } } }),
-    prisma.programSubscription.count({ where: { planType: "TRIMESTRAL", status: { not: "INACTIVO" } } }),
-    prisma.programSubscription.count({ where: { planType: "SEMESTRAL", status: { not: "INACTIVO" } } }),
+    Promise.all(
+      PROGRAMS.flatMap((p) =>
+        PLAN_TYPES.map(async (pt) => ({
+          program: p.key,
+          planType: pt.key,
+          count: await prisma.programSubscription.count({
+            where: { program: p.key, planType: pt.key, status: { not: "INACTIVO" } },
+          }),
+        }))
+      )
+    ),
   ]);
 
   const cards = [
@@ -26,11 +45,8 @@ export default async function HomePage() {
     { label: "Güipas Soccer", value: soccer, color: "#3d0f30" },
   ];
 
-  const planCards = [
-    { label: "Plan Mensual", value: mensual, color: "#3d0f30" },
-    { label: "Plan Trimestral", value: trimestral, color: "#3d0f30" },
-    { label: "Plan Semestral", value: semestral, color: "#3d0f30" },
-  ];
+  const planCount = (program: string, planType: string) =>
+    planByProgramCounts.find((c) => c.program === program && c.planType === planType)?.count ?? 0;
 
   return (
     <div>
@@ -54,23 +70,52 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Niños por tipo de plan</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
-        {planCards.map((c) => (
-          <div
-            key={c.label}
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: "1.25rem",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            }}
-          >
-            <div style={{ fontSize: "0.85rem", color: "#64748b" }}>{c.label}</div>
-            <div style={{ fontSize: "2rem", fontWeight: 700, color: c.color }}>{c.value}</div>
-          </div>
-        ))}
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Niños por programa y tipo de plan</h2>
+      <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Programa</th>
+              {PLAN_TYPES.map((pt) => (
+                <th key={pt.key} style={{ ...th, textAlign: "center" }}>
+                  {pt.label}
+                </th>
+              ))}
+              <th style={{ ...th, textAlign: "center" }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PROGRAMS.map((p) => {
+              const rowTotal = PLAN_TYPES.reduce((sum, pt) => sum + planCount(p.key, pt.key), 0);
+              return (
+                <tr key={p.key} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={{ ...td, fontWeight: 600, color: "#3d0f30" }}>{p.label}</td>
+                  {PLAN_TYPES.map((pt) => (
+                    <td key={pt.key} style={{ ...td, textAlign: "center" }}>
+                      {planCount(p.key, pt.key)}
+                    </td>
+                  ))}
+                  <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>{rowTotal}</td>
+                </tr>
+              );
+            })}
+            <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+              <td style={{ ...td, fontWeight: 700, color: "#3d0f30" }}>Total</td>
+              {PLAN_TYPES.map((pt) => (
+                <td key={pt.key} style={{ ...td, textAlign: "center", fontWeight: 700 }}>
+                  {PROGRAMS.reduce((sum, p) => sum + planCount(p.key, pt.key), 0)}
+                </td>
+              ))}
+              <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>
+                {PROGRAMS.reduce((sum, p) => sum + PLAN_TYPES.reduce((s, pt) => s + planCount(p.key, pt.key), 0), 0)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
+
+const th: React.CSSProperties = { padding: "0.75rem 1rem", fontWeight: 600, color: "#334155" };
+const td: React.CSSProperties = { padding: "0.75rem 1rem", color: "#3d0f30" };
