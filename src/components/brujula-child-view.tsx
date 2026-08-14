@@ -60,6 +60,7 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
     where: { date: { gte: today }, OR: [{ program: null }, { program: { in: programs } }] },
     orderBy: { date: "asc" },
     take: 10,
+    include: { callUps: { where: { clientId } } },
   });
 
   return (
@@ -261,7 +262,25 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
             {events.map((e) => (
               <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#3d0f30", fontSize: "0.9rem" }}>{e.title}</div>
+                  <div style={{ fontWeight: 600, color: "#3d0f30", fontSize: "0.9rem" }}>
+                    {e.isMatch && <span style={{ marginRight: 6 }}>⚽</span>}
+                    {e.title}
+                    {e.isMatch && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          padding: "0.15rem 0.5rem",
+                          borderRadius: 999,
+                          background: e.callUps.length > 0 ? "#dcfce7" : "#f1f5f9",
+                          color: e.callUps.length > 0 ? "#166534" : "#94a3b8",
+                        }}
+                      >
+                        {e.callUps.length > 0 ? "Convocado ✓" : "No convocado"}
+                      </span>
+                    )}
+                  </div>
                   {e.description && <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{e.description}</div>}
                 </div>
                 <div style={{ fontSize: "0.85rem", color: "#5c1a4a", fontWeight: 600, whiteSpace: "nowrap" }}>

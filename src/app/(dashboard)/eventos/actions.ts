@@ -19,18 +19,38 @@ export async function createEvent(formData: FormData) {
   if (!title) throw new Error("El título es obligatorio");
   if (!dateStr) throw new Error("La fecha es obligatoria");
 
+  const isMatch = formData.get("isMatch") === "on";
+  const callUpIds = isMatch ? formData.getAll("callUpClientId").map(String) : [];
+
   await prisma.specialEvent.create({
     data: {
       title,
       date: new Date(dateStr),
       description: String(formData.get("description") ?? "").trim() || null,
-      program: parseProgram(formData.get("program")),
+      program: isMatch ? "GUAGUAS_SOCCER" : parseProgram(formData.get("program")),
+      isMatch,
+      callUps: callUpIds.length > 0 ? { create: callUpIds.map((clientId) => ({ clientId })) } : undefined,
     },
   });
 
   revalidatePath("/eventos");
   revalidatePath("/brujula");
   redirect("/eventos");
+}
+
+export async function updateEventCallUps(eventId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const callUpIds = formData.getAll("callUpClientId").map(String);
+
+  await prisma.$transaction([
+    prisma.eventCallUp.deleteMany({ where: { eventId } }),
+    prisma.eventCallUp.createMany({ data: callUpIds.map((clientId) => ({ eventId, clientId })) }),
+  ]);
+
+  revalidatePath("/eventos");
+  revalidatePath("/brujula");
 }
 
 export async function deleteEvent(formData: FormData) {

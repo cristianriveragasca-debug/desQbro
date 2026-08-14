@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { createEvent, deleteEvent } from "./actions";
+import { createEvent, deleteEvent, updateEventCallUps } from "./actions";
 import { toDateInputValue } from "@/lib/dates";
 
 const PROGRAM_LABEL: Record<string, string> = {
@@ -9,13 +9,19 @@ const PROGRAM_LABEL: Record<string, string> = {
 };
 
 export default async function EventosPage() {
-  const events = await prisma.specialEvent.findMany({ orderBy: { date: "asc" } });
+  const [events, soccerClients] = await Promise.all([
+    prisma.specialEvent.findMany({ orderBy: { date: "asc" }, include: { callUps: { include: { client: true } } } }),
+    prisma.client.findMany({
+      where: { subscriptions: { some: { program: "GUAGUAS_SOCCER" } } },
+      orderBy: { fullName: "asc" },
+    }),
+  ]);
   const today = new Date();
 
   return (
     <div>
       <h1 style={{ marginTop: 0 }}>Eventos especiales</h1>
-      <p style={{ color: "#64748b" }}>Torneos, salidas y actividades puntuales que verán los padres en La Brújula.</p>
+      <p style={{ color: "#64748b" }}>Torneos, salidas, partidos y actividades puntuales que verán los padres en La Brújula.</p>
 
       <div className="two-col-stack" style={{ gridTemplateColumns: "1fr 1.4fr", marginTop: 24 }}>
         <div>
@@ -27,6 +33,14 @@ export default async function EventosPage() {
             <Field label="Título *">
               <input name="title" required style={input} placeholder="Ej: Torneo interclubes" />
             </Field>
+
+            <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" name="isMatch" id="isMatch" style={{ width: 16, height: 16 }} />
+              <label htmlFor="isMatch" style={{ fontSize: "0.85rem", color: "#334155" }}>
+                Es un partido de Güipas Soccer
+              </label>
+            </div>
+
             <Field label="Programa">
               <select name="program" defaultValue="" style={input}>
                 <option value="">Todos los programas</option>
@@ -37,6 +51,19 @@ export default async function EventosPage() {
                 ))}
               </select>
             </Field>
+
+            <Field label="Niños convocados (solo si es partido)">
+              <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid #cbd5e1", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                {soccerClients.length === 0 && <p style={{ fontSize: "0.8rem", color: "#94a3b8", margin: 0 }}>No hay niños inscritos en Güipas Soccer.</p>}
+                {soccerClients.map((c) => (
+                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", padding: "0.2rem 0" }}>
+                    <input type="checkbox" name="callUpClientId" value={c.id} style={{ width: 14, height: 14 }} />
+                    {c.fullName}
+                  </label>
+                ))}
+              </div>
+            </Field>
+
             <Field label="Fecha *">
               <input name="date" type="date" required defaultValue={toDateInputValue(today)} style={input} />
             </Field>
@@ -54,47 +81,64 @@ export default async function EventosPage() {
 
         <div>
           <h2 style={{ fontSize: "1rem", marginTop: 0 }}>Próximos y pasados</h2>
-          <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-              <thead>
-                <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
-                  <th style={th}>Fecha</th>
-                  <th style={th}>Título</th>
-                  <th style={th}>Programa</th>
-                  <th style={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ ...td, textAlign: "center", color: "#94a3b8" }}>
-                      Aún no hay eventos creados.
-                    </td>
-                  </tr>
-                )}
-                {events.map((e) => {
-                  const past = e.date < today;
-                  return (
-                    <tr key={e.id} style={{ borderTop: "1px solid #e2e8f0", opacity: past ? 0.5 : 1 }}>
-                      <td style={{ ...td, whiteSpace: "nowrap" }}>{e.date.toLocaleDateString("es-CO")}</td>
-                      <td style={td}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {events.length === 0 && (
+              <p style={{ fontSize: "0.85rem", color: "#94a3b8", background: "#fff", borderRadius: 12, padding: "1rem" }}>
+                Aún no hay eventos creados.
+              </p>
+            )}
+            {events.map((e) => {
+              const past = e.date < today;
+              return (
+                <div key={e.id} style={{ background: "#fff", borderRadius: 12, padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", opacity: past ? 0.6 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#3d0f30" }}>
+                        {e.isMatch && <span style={{ marginRight: 6 }}>⚽</span>}
                         {e.title}
-                        {e.description && <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{e.description}</div>}
-                      </td>
-                      <td style={td}>{e.program ? PROGRAM_LABEL[e.program] : "Todos"}</td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        <form action={deleteEvent}>
-                          <input type="hidden" name="id" value={e.id} />
-                          <button type="submit" style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.85rem" }}>
-                            Eliminar
-                          </button>
-                        </form>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                        {e.date.toLocaleDateString("es-CO")} · {e.isMatch ? "Partido Güipas Soccer" : e.program ? PROGRAM_LABEL[e.program] : "Todos"}
+                      </div>
+                      {e.description && <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: 4 }}>{e.description}</div>}
+                    </div>
+                    <form action={deleteEvent}>
+                      <input type="hidden" name="id" value={e.id} />
+                      <button type="submit" style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.8rem" }}>
+                        Eliminar
+                      </button>
+                    </form>
+                  </div>
+
+                  {e.isMatch && (
+                    <details style={{ marginTop: 10 }}>
+                      <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#5c1a4a", fontWeight: 600 }}>
+                        Convocados ({e.callUps.length})
+                      </summary>
+                      <form action={updateEventCallUps.bind(null, e.id)} style={{ marginTop: 8 }}>
+                        <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                          {soccerClients.map((c) => {
+                            const checked = e.callUps.some((cu) => cu.clientId === c.id);
+                            return (
+                              <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", padding: "0.2rem 0" }}>
+                                <input type="checkbox" name="callUpClientId" value={c.id} defaultChecked={checked} style={{ width: 14, height: 14 }} />
+                                {c.fullName}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <button
+                          type="submit"
+                          style={{ marginTop: 8, background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.35rem 0.8rem", fontSize: "0.8rem", cursor: "pointer", color: "#334155" }}
+                        >
+                          Guardar convocados
+                        </button>
+                      </form>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -120,5 +164,3 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
   fontFamily: "inherit",
 };
-const th: React.CSSProperties = { padding: "0.75rem 1rem", fontWeight: 600, color: "#334155" };
-const td: React.CSSProperties = { padding: "0.75rem 1rem", color: "#3d0f30" };

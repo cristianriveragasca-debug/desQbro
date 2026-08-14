@@ -125,6 +125,7 @@ model Client {
   enrollments   Enrollment[]
   attendances   Attendance[]
   messages      Message[]
+  callUps       EventCallUp[]
 }
 
 model ProgramSubscription {
@@ -200,8 +201,22 @@ model SpecialEvent {
   title       String
   description String?
   program     Program?
+  isMatch     Boolean  @default(false)
   date        DateTime
   createdAt   DateTime @default(now())
+
+  callUps EventCallUp[]
+}
+
+model EventCallUp {
+  id        String       @id @default(cuid())
+  event     SpecialEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId  String
+  createdAt DateTime     @default(now())
+
+  @@unique([eventId, clientId])
 }
 
 model ClassGroup {
