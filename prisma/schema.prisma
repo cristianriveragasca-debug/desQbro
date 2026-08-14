@@ -144,6 +144,9 @@ model ProgramSubscription {
   swimChecklist Json          @default("{}")
   soccerBadges  Json          @default("[]")
   closingLetter String?
+  babySkills    Json          @default("{}")
+  babyBadges    Json          @default("[]")
+  specialistNotes String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

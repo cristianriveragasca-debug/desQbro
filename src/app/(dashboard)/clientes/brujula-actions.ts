@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { SWIM_CRITERIA, countChecked, nextSwimLevel, type SwimLevelValue } from "@/lib/swim-progress";
 import { SOCCER_SKILLS, computeEarnedBadges, mergeBadges } from "@/lib/guipas-evaluation";
+import { BEBE_SKILLS, computeBebeEarnedBadges, mergeBebeBadges } from "@/lib/bebes-evaluation";
 
 function parseProgressLevel(value: FormDataEntryValue | null): "INICIACION" | "BASICO" | "INTERMEDIO" | "AVANZADO" | "EXPERTO" {
   if (value === "BASICO" || value === "INTERMEDIO" || value === "AVANZADO" || value === "EXPERTO") return value;
@@ -172,6 +173,33 @@ export async function saveClosingLetter(subscriptionId: string, clientId: string
 
   const closingLetter = String(formData.get("closingLetter") ?? "").trim() || null;
   await prisma.programSubscription.update({ where: { id: subscriptionId }, data: { closingLetter } });
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/brujula-admin/${clientId}`);
+  revalidatePath(`/brujula/${clientId}`);
+}
+
+export async function updateBebeEvaluation(subscriptionId: string, clientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const skills: Record<string, number> = {};
+  for (const skill of BEBE_SKILLS) {
+    const raw = Number(formData.get(`skill_${skill.key}`));
+    skills[skill.key] = raw >= 1 && raw <= 5 ? raw : 1;
+  }
+
+  const specialistNotes = String(formData.get("specialistNotes") ?? "").trim() || null;
+  const earned = computeBebeEarnedBadges(skills);
+
+  const subscription = await prisma.programSubscription.findUnique({ where: { id: subscriptionId } });
+  const existingBadges = (subscription?.babyBadges as string[] | null) ?? [];
+  const updatedBadges = mergeBebeBadges(existingBadges, earned);
+
+  await prisma.programSubscription.update({
+    where: { id: subscriptionId },
+    data: { babySkills: skills, babyBadges: updatedBadges, specialistNotes },
+  });
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath(`/brujula-admin/${clientId}`);

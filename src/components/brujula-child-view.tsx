@@ -6,6 +6,8 @@ import { PROGRESS_BADGE, PROGRESS_LABEL, progressPercent } from "@/lib/progress"
 import { SwimTrack } from "@/components/swim-track";
 import type { SwimLevelValue } from "@/lib/swim-progress";
 import { GuipasBadges } from "@/components/guipas-badges";
+import { BebeBadges } from "@/components/bebe-badges";
+import { BebeTrack } from "@/components/bebe-track";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -103,6 +105,16 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
                         &ldquo;{sub.monthlyEvaluations[0].parentPhrase}&rdquo;
                       </div>
                     </div>
+                  )}
+                </div>
+              ) : sub.program === "DESQBRO_BEBES" ? (
+                <div style={{ marginTop: 10 }}>
+                  <BebeBadges earned={(sub.babyBadges as string[] | null) ?? []} />
+                  <BebeTrack skills={(sub.babySkills as Record<string, number> | null) ?? {}} />
+                  {sub.specialistNotes && (
+                    <p style={{ fontSize: "0.85rem", color: "#3d0f30", marginTop: 8 }}>
+                      <strong>Observaciones del especialista:</strong> {sub.specialistNotes}
+                    </p>
                   )}
                 </div>
               ) : (

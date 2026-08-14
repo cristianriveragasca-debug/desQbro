@@ -27,6 +27,7 @@ import { PROGRESS_BADGE, PROGRESS_LABEL, PROGRESS_LEVELS, progressPercent } from
 import { SWIM_CRITERIA, SWIM_TRANSITION_LABEL, countChecked, isChecklistChecked, type SwimLevelValue } from "@/lib/swim-progress";
 import { SwimTrack } from "@/components/swim-track";
 import { GuipasAdminPanel } from "@/components/guipas-admin-panel";
+import { BebeAdminPanel } from "@/components/bebe-admin-panel";
 
 function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -258,6 +259,8 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                 </div>
               ) : sub.program === "GUAGUAS_SOCCER" ? (
                 <GuipasAdminPanel subscription={sub} clientId={client.id} />
+              ) : sub.program === "DESQBRO_BEBES" ? (
+                <BebeAdminPanel subscription={sub} clientId={client.id} />
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
                   <span style={{ fontSize: "1.3rem" }}>{PROGRESS_BADGE[sub.progressLevel]}</span>
