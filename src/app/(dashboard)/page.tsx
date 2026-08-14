@@ -4,12 +4,32 @@ function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 }
 
-function startOfWeek(date: Date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // Monday as start of week
-  d.setDate(d.getDate() + diff);
-  return d;
+// Semanas ancladas al mes: la primera semana va del día 1 hasta el domingo que cierra
+// la primera semana Lunes-Domingo completa (por eso puede durar más de 7 días),
+// luego siguen semanas normales de Lunes a Domingo hasta el fin de mes.
+function monthWeeks(year: number, month: number) {
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  const dow = monthStart.getDay(); // 0=Dom..6=Sáb
+  const daysToMonday = dow === 1 ? 0 : (8 - dow) % 7;
+
+  const weeks: { start: Date; end: Date }[] = [];
+  let firstWeekEnd = new Date(monthStart);
+  firstWeekEnd.setDate(firstWeekEnd.getDate() + daysToMonday + 6);
+  if (firstWeekEnd > monthEnd) firstWeekEnd = new Date(monthEnd);
+  weeks.push({ start: new Date(monthStart), end: firstWeekEnd });
+
+  let cursor = new Date(firstWeekEnd);
+  cursor.setDate(cursor.getDate() + 1);
+  while (cursor <= monthEnd) {
+    let weekEnd = new Date(cursor);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    if (weekEnd > monthEnd) weekEnd = new Date(monthEnd);
+    weeks.push({ start: new Date(cursor), end: weekEnd });
+    cursor = new Date(weekEnd);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return weeks;
 }
 
 export default async function HomePage() {
@@ -26,10 +46,8 @@ export default async function HomePage() {
     { key: "SEMESTRAL", label: "Semestral" },
   ] as const;
 
-  const WEEKS_BACK = 6;
-  const currentWeekStart = startOfWeek(today);
-  const earliestWeekStart = new Date(currentWeekStart);
-  earliestWeekStart.setDate(earliestWeekStart.getDate() - (WEEKS_BACK - 1) * 7);
+  const weeks = monthWeeks(today.getFullYear(), today.getMonth());
+  const monthStart = weeks[0].start;
 
   const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, planByProgramCounts, recentPayments] = await Promise.all([
     prisma.client.count(),
@@ -51,24 +69,16 @@ export default async function HomePage() {
       )
     ),
     prisma.payment.findMany({
-      where: { status: "PAGADO", paidAt: { gte: earliestWeekStart } },
+      where: { status: "PAGADO", paidAt: { gte: monthStart } },
       select: { amount: true, paidAt: true, subscription: { select: { program: true } } },
     }),
   ]);
 
-  const weeks = Array.from({ length: WEEKS_BACK }, (_, i) => {
-    const start = new Date(currentWeekStart);
-    start.setDate(start.getDate() - (WEEKS_BACK - 1 - i) * 7);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    return { start, end };
-  });
-
-  const weeklyIncome = (weekStart: Date, program?: string) => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+  const weeklyIncome = (weekStart: Date, weekEndInclusive: Date, program?: string) => {
+    const weekEndExclusive = new Date(weekEndInclusive);
+    weekEndExclusive.setDate(weekEndExclusive.getDate() + 1);
     return recentPayments
-      .filter((p) => p.paidAt && p.paidAt >= weekStart && p.paidAt < weekEnd && (!program || p.subscription.program === program))
+      .filter((p) => p.paidAt && p.paidAt >= weekStart && p.paidAt < weekEndExclusive && (!program || p.subscription.program === program))
       .reduce((sum, p) => sum + Number(p.amount), 0);
   };
 
@@ -151,7 +161,9 @@ export default async function HomePage() {
         </table>
       </div>
 
-      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Ingresos por semana y programa</h2>
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>
+        Ingresos por semana y programa · {today.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
+      </h2>
       <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
@@ -166,25 +178,22 @@ export default async function HomePage() {
             </tr>
           </thead>
           <tbody>
-            {weeks
-              .slice()
-              .reverse()
-              .map(({ start, end }) => {
-                const rowTotal = weeklyIncome(start);
-                return (
-                  <tr key={start.toISOString()} style={{ borderTop: "1px solid #e2e8f0" }}>
-                    <td style={{ ...td, whiteSpace: "nowrap" }}>
-                      {start.toLocaleDateString("es-CO", { day: "numeric", month: "short" })} - {end.toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+            {weeks.map(({ start, end }, i) => {
+              const rowTotal = weeklyIncome(start, end);
+              return (
+                <tr key={start.toISOString()} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>
+                    Semana {i + 1} · {start.toLocaleDateString("es-CO", { day: "numeric", month: "short" })} - {end.toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                  </td>
+                  {PROGRAMS.map((p) => (
+                    <td key={p.key} style={{ ...td, textAlign: "right" }}>
+                      {money(weeklyIncome(start, end, p.key))}
                     </td>
-                    {PROGRAMS.map((p) => (
-                      <td key={p.key} style={{ ...td, textAlign: "right" }}>
-                        {money(weeklyIncome(start, p.key))}
-                      </td>
-                    ))}
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(rowTotal)}</td>
-                  </tr>
-                );
-              })}
+                  ))}
+                  <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(rowTotal)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
