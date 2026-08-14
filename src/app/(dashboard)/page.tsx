@@ -1,5 +1,17 @@
 import { prisma } from "@/lib/prisma";
 
+function money(n: number) {
+  return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+}
+
+function startOfWeek(date: Date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday as start of week
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
 export default async function HomePage() {
   const today = new Date();
 
@@ -14,7 +26,12 @@ export default async function HomePage() {
     { key: "SEMESTRAL", label: "Semestral" },
   ] as const;
 
-  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, planByProgramCounts] = await Promise.all([
+  const WEEKS_BACK = 6;
+  const currentWeekStart = startOfWeek(today);
+  const earliestWeekStart = new Date(currentWeekStart);
+  earliestWeekStart.setDate(earliestWeekStart.getDate() - (WEEKS_BACK - 1) * 7);
+
+  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, planByProgramCounts, recentPayments] = await Promise.all([
     prisma.client.count(),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { gte: today } } }),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { lt: today } } }),
@@ -33,7 +50,27 @@ export default async function HomePage() {
         }))
       )
     ),
+    prisma.payment.findMany({
+      where: { status: "PAGADO", paidAt: { gte: earliestWeekStart } },
+      select: { amount: true, paidAt: true, subscription: { select: { program: true } } },
+    }),
   ]);
+
+  const weeks = Array.from({ length: WEEKS_BACK }, (_, i) => {
+    const start = new Date(currentWeekStart);
+    start.setDate(start.getDate() - (WEEKS_BACK - 1 - i) * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return { start, end };
+  });
+
+  const weeklyIncome = (weekStart: Date, program?: string) => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    return recentPayments
+      .filter((p) => p.paidAt && p.paidAt >= weekStart && p.paidAt < weekEnd && (!program || p.subscription.program === program))
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+  };
 
   const cards = [
     { label: "Total clientes", value: totalClientes, color: "#3d0f30" },
@@ -110,6 +147,44 @@ export default async function HomePage() {
                 {PROGRAMS.reduce((sum, p) => sum + PLAN_TYPES.reduce((s, pt) => s + planCount(p.key, pt.key), 0), 0)}
               </td>
             </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Ingresos por semana y programa</h2>
+      <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Semana</th>
+              {PROGRAMS.map((p) => (
+                <th key={p.key} style={{ ...th, textAlign: "right" }}>
+                  {p.label}
+                </th>
+              ))}
+              <th style={{ ...th, textAlign: "right" }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weeks
+              .slice()
+              .reverse()
+              .map(({ start, end }) => {
+                const rowTotal = weeklyIncome(start);
+                return (
+                  <tr key={start.toISOString()} style={{ borderTop: "1px solid #e2e8f0" }}>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>
+                      {start.toLocaleDateString("es-CO", { day: "numeric", month: "short" })} - {end.toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                    </td>
+                    {PROGRAMS.map((p) => (
+                      <td key={p.key} style={{ ...td, textAlign: "right" }}>
+                        {money(weeklyIncome(start, p.key))}
+                      </td>
+                    ))}
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(rowTotal)}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
