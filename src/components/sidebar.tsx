@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/clases", label: "Agendamiento de Clases", enabled: true },
   { href: "/asistencia", label: "Asistencia", enabled: true },
   { href: "/financiero", label: "Financiero", enabled: true },
+  { href: "/reportes", label: "Reportes", enabled: true },
   { href: "/eventos", label: "Eventos Especiales", enabled: true },
   { href: "/brujula-admin", label: "La Brújula", enabled: true },
   { href: "/marketing", label: "Marketing WhatsApp", enabled: false },
