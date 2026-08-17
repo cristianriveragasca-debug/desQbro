@@ -1,11 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { money, monthWeeks } from "@/lib/weeks";
-
-const PROGRAM_LABEL: Record<string, string> = {
-  DESQBRO_BEBES: "desQbro Bebés",
-  DESQBRO_AQUA: "desQbro AQUA",
-  GUAGUAS_SOCCER: "Güipas Soccer",
-};
+import { DAY_LABELS, PROGRAM_LABEL } from "@/lib/schedule";
 
 function monthInputValue(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -54,6 +49,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
 
   const monthValue = monthInputValue(monthStart);
   const monthLabel = monthStart.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+
+  const classGroups = await prisma.classGroup.findMany({
+    include: { enrollments: { include: { client: true } } },
+    orderBy: [{ program: "asc" }, { dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
 
   return (
     <div>
@@ -154,6 +154,50 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
             })}
           </tbody>
         </table>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28, flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ fontSize: "1.05rem", margin: 0, color: "#3d0f30" }}>Grupos y horarios</h2>
+        <a
+          href="/api/reportes/grupos-horarios"
+          style={{ background: "#166534", color: "#fff", padding: "0.45rem 0.9rem", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}
+        >
+          Descargar Excel
+        </a>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+        {classGroups.length === 0 && (
+          <p style={{ fontSize: "0.85rem", color: "#94a3b8", background: "#fff", borderRadius: 12, padding: "1rem" }}>
+            Aún no hay grupos de clase creados.
+          </p>
+        )}
+        {classGroups.map((g) => (
+          <div key={g.id} style={{ background: "#fff", borderRadius: 12, padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <strong style={{ color: "#3d0f30" }}>{g.name}</strong>
+                <span style={{ color: "#64748b", marginLeft: 8, fontSize: "0.85rem" }}>{PROGRAM_LABEL[g.program]}</span>
+              </div>
+              <span style={{ fontSize: "0.85rem", color: "#5c1a4a", fontWeight: 600 }}>
+                {DAY_LABELS[g.dayOfWeek]} · {g.startTime} - {g.endTime}
+              </span>
+            </div>
+            <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: 6 }}>
+              {g.enrollments.length} / {g.capacity} niños inscritos
+            </p>
+            <details style={{ marginTop: 6 }}>
+              <summary style={{ cursor: "pointer", fontSize: "0.8rem", color: "#5c1a4a", fontWeight: 600 }}>Ver niños del grupo</summary>
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                {g.enrollments.length === 0 && <p style={{ fontSize: "0.8rem", color: "#94a3b8", margin: 0 }}>Sin niños inscritos.</p>}
+                {g.enrollments.map((e) => (
+                  <div key={e.id} style={{ fontSize: "0.85rem", color: "#3d0f30" }}>
+                    {e.client.fullName}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        ))}
       </div>
     </div>
   );
