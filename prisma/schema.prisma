@@ -196,6 +196,18 @@ model CoachNote {
   createdAt      DateTime            @default(now())
 }
 
+model MonthlyIncomeOverride {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  program   Program
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, month, program])
+}
+
 model SpecialEvent {
   id          String   @id @default(cuid())
   title       String
