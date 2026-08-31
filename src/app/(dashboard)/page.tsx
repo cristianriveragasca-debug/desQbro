@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { money, monthWeeks } from "@/lib/weeks";
 import { IncomeComparisonChart } from "@/components/income-comparison-chart";
 import { MonthlyIncomeTable } from "@/components/monthly-income-table";
+import { GoalProgressBars } from "@/components/goal-progress-bars";
 import { saveMonthlyIncomeOverrides } from "./actions";
+
+const ENROLLMENT_GOAL = 30;
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -24,7 +27,7 @@ export default async function HomePage() {
   const weeks = monthWeeks(today.getFullYear(), today.getMonth());
   const monthStart = weeks[0].start;
 
-  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, planByProgramCounts, recentPayments] = await Promise.all([
+  const [totalClientes, activos, vencidos, inactivos, bebes, aqua, soccer, bebesActive, aquaActive, soccerActive, planByProgramCounts, recentPayments] = await Promise.all([
     prisma.client.count(),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { gte: today } } }),
     prisma.programSubscription.count({ where: { status: { not: "INACTIVO" }, dueDate: { lt: today } } }),
@@ -32,6 +35,9 @@ export default async function HomePage() {
     prisma.programSubscription.count({ where: { program: "DESQBRO_BEBES" } }),
     prisma.programSubscription.count({ where: { program: "DESQBRO_AQUA" } }),
     prisma.programSubscription.count({ where: { program: "GUAGUAS_SOCCER" } }),
+    prisma.programSubscription.count({ where: { program: "DESQBRO_BEBES", status: { not: "INACTIVO" } } }),
+    prisma.programSubscription.count({ where: { program: "DESQBRO_AQUA", status: { not: "INACTIVO" } } }),
+    prisma.programSubscription.count({ where: { program: "GUAGUAS_SOCCER", status: { not: "INACTIVO" } } }),
     Promise.all(
       PROGRAMS.flatMap((p) =>
         PLAN_TYPES.map(async (pt) => ({
@@ -101,6 +107,15 @@ export default async function HomePage() {
     <div>
       <h1 style={{ marginTop: 0 }}>Panel General</h1>
       <p style={{ color: "#64748b" }}>Resumen de tu escuela de formación deportiva.</p>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 20, marginBottom: 12, color: "#3d0f30" }}>Avance de metas de matrícula</h2>
+      <GoalProgressBars
+        goals={[
+          { label: "desQbro Bebés", current: bebesActive, goal: ENROLLMENT_GOAL, color: "#c2410c" },
+          { label: "desQbro AQUA", current: aquaActive, goal: ENROLLMENT_GOAL, color: "#0369a1" },
+          { label: "Güipas Soccer", current: soccerActive, goal: ENROLLMENT_GOAL, color: "#166534" },
+        ]}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginTop: 24 }}>
         {cards.map((c) => (
