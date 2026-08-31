@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { money, monthWeeks } from "@/lib/weeks";
 import { IncomeComparisonChart } from "@/components/income-comparison-chart";
+import { MonthlyIncomeTable } from "@/components/monthly-income-table";
 import { saveMonthlyIncomeOverrides } from "./actions";
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -212,56 +213,14 @@ export default async function HomePage() {
           Los meses con pagos registrados en el sistema se calculan automáticamente; puedes corregir cualquier valor y guardar.
         </p>
       </div>
-      <form action={saveMonthlyIncomeOverrides} className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginTop: 10 }}>
-        <input type="hidden" name="year" value={currentYear} />
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-          <thead>
-            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
-              <th style={th}>Programa</th>
-              {MONTH_LABELS.map((m) => (
-                <th key={m} style={{ ...th, textAlign: "center" }}>
-                  {m}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {PROGRAMS.map((p) => (
-              <tr key={p.key} style={{ borderTop: "1px solid #e2e8f0" }}>
-                <td style={{ ...td, fontWeight: 600, color: "#3d0f30", whiteSpace: "nowrap" }}>{p.label}</td>
-                {MONTH_LABELS.map((_, monthIdx) => (
-                  <td key={monthIdx} style={{ padding: "0.4rem 0.3rem" }}>
-                    <input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      name={`amount_${p.key}_${monthIdx + 1}`}
-                      defaultValue={mergedMonthly(p.key, monthIdx)}
-                      style={{ width: 82, padding: "0.3rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", textAlign: "right" }}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-            <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
-              <td style={{ ...td, fontWeight: 700, color: "#3d0f30" }}>Total</td>
-              {MONTH_LABELS.map((_, monthIdx) => (
-                <td key={monthIdx} style={{ ...td, textAlign: "center", fontWeight: 700 }}>
-                  {money(PROGRAMS.reduce((sum, p) => sum + mergedMonthly(p.key, monthIdx), 0))}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-        <div style={{ padding: "1rem" }}>
-          <button
-            type="submit"
-            style={{ background: "#166534", color: "#fff", border: "none", padding: "0.55rem 1.2rem", borderRadius: 8, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
-          >
-            Guardar cambios
-          </button>
-        </div>
-      </form>
+      <MonthlyIncomeTable
+        programs={PROGRAMS.map((p) => ({ key: p.key, label: p.label }))}
+        year={currentYear}
+        initialValues={Object.fromEntries(
+          PROGRAMS.map((p) => [p.key, MONTH_LABELS.map((_, monthIdx) => mergedMonthly(p.key, monthIdx))])
+        )}
+        action={saveMonthlyIncomeOverrides}
+      />
     </div>
   );
 }
