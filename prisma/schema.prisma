@@ -72,6 +72,14 @@ enum ExpenseMethod {
   OTRO
 }
 
+enum LeadStatus {
+  NUEVO
+  CONTACTADO
+  AGENDADO
+  DESCARTADO
+  CONVERTIDO
+}
+
 enum ProgressLevel {
   INICIACION
   BASICO
@@ -194,6 +202,20 @@ model CoachNote {
   date           DateTime
   note           String
   createdAt      DateTime            @default(now())
+}
+
+model TrialRequest {
+  id           String     @id @default(cuid())
+  guardianName String
+  babyName     String
+  birthDate    DateTime
+  address      String
+  phone        String
+  email        String?
+  status       LeadStatus @default(NUEVO)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model MonthlyIncomeOverride {
