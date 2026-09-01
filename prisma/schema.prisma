@@ -206,6 +206,7 @@ model CoachNote {
 
 model TrialRequest {
   id           String     @id @default(cuid())
+  program      Program
   guardianName String
   babyName     String
   birthDate    DateTime

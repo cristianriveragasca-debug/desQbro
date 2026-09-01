@@ -9,12 +9,40 @@ export default function ReservaPage() {
           <Image src="/logo.jpeg" alt="desQbro" width={220} height={92} style={{ width: "100%", height: "auto" }} priority />
         </div>
         <h1 style={styles.title}>Reserva tu clase de experiencia</h1>
-        <p style={styles.subtitle}>desQbro Bebés — cuéntanos de tu bebé y te contactaremos para agendar</p>
+        <p style={styles.subtitle}>Cuéntanos del niño o niña y te contactaremos para agendar</p>
+
+        <label style={styles.label}>Programa *</label>
+        <div style={styles.programOptions}>
+          <label style={styles.programOption}>
+            <input type="radio" name="program" value="DESQBRO_BEBES" required />
+            <span>
+              <strong>desQbro Bebés</strong>
+              <br />
+              <span style={styles.programRange}>4 meses a 3 años</span>
+            </span>
+          </label>
+          <label style={styles.programOption}>
+            <input type="radio" name="program" value="DESQBRO_AQUA" />
+            <span>
+              <strong>desQbro AQUA</strong>
+              <br />
+              <span style={styles.programRange}>4 a 12 años</span>
+            </span>
+          </label>
+          <label style={styles.programOption}>
+            <input type="radio" name="program" value="GUAGUAS_SOCCER" />
+            <span>
+              <strong>Güipas Soccer</strong>
+              <br />
+              <span style={styles.programRange}>2.5 a 9 años</span>
+            </span>
+          </label>
+        </div>
 
         <label style={styles.label}>Nombre del acudiente *</label>
         <input name="guardianName" required style={styles.input} />
 
-        <label style={styles.label}>Nombre del bebé *</label>
+        <label style={styles.label}>Nombre del niño/a *</label>
         <input name="babyName" required style={styles.input} />
 
         <label style={styles.label}>Fecha de nacimiento *</label>
@@ -59,6 +87,19 @@ const styles: Record<string, React.CSSProperties> = {
   title: { textAlign: "center", color: "#3d0f30", marginTop: 16, marginBottom: 2, fontSize: "1.3rem" },
   subtitle: { marginTop: 4, marginBottom: 28, color: "#64748b", fontSize: "0.9rem", textAlign: "center" },
   label: { display: "block", fontSize: "0.85rem", marginBottom: 6, color: "#334155" },
+  programOptions: { display: "flex", flexDirection: "column", gap: 8, marginBottom: "1rem" },
+  programOption: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "0.6rem 0.75rem",
+    borderRadius: "8px",
+    border: "1px solid #cbd5e1",
+    cursor: "pointer",
+    fontSize: "0.9rem",
+    color: "#3d0f30",
+  },
+  programRange: { fontSize: "0.78rem", color: "#64748b" },
   input: {
     width: "100%",
     padding: "0.6rem 0.75rem",
