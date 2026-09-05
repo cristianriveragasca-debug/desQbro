@@ -50,6 +50,7 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
   if (!client) return <p style={{ color: "#94a3b8" }}>Cliente no encontrado.</p>;
 
   const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const attendanceMonth = client.attendances.filter((a) => a.classSession.date >= startOfMonth);
@@ -57,7 +58,7 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
 
   const programs = client.subscriptions.map((s) => s.program);
   const events = await prisma.specialEvent.findMany({
-    where: { date: { gte: today }, OR: [{ program: null }, { program: { in: programs } }] },
+    where: { date: { gte: startOfToday }, OR: [{ program: null }, { program: { in: programs } }] },
     orderBy: { date: "asc" },
     take: 10,
     include: { callUps: { where: { clientId } } },

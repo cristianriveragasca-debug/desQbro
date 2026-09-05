@@ -17,6 +17,7 @@ export default async function EventosPage() {
     }),
   ]);
   const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   return (
     <div>
@@ -88,7 +89,7 @@ export default async function EventosPage() {
               </p>
             )}
             {events.map((e) => {
-              const past = e.date < today;
+              const past = e.date < startOfToday;
               return (
                 <div key={e.id} style={{ background: "#fff", borderRadius: 12, padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", opacity: past ? 0.6 : 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
