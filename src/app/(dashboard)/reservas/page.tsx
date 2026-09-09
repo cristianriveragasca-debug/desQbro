@@ -110,42 +110,41 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
                 </div>
               </div>
 
-              <form action={updateLeadStatus.bind(null, lead.id)} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 12 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Estado</label>
-                  <select name="status" defaultValue={lead.status} style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}>
-                    {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Nota de seguimiento</label>
-                  <input
-                    name="notes"
-                    defaultValue={lead.notes ?? ""}
-                    placeholder="Ej: Llamé el martes, agendó para el sábado 10am"
-                    style={{ width: "100%", padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem", boxSizing: "border-box" }}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.4rem 0.8rem", fontSize: "0.8rem", cursor: "pointer", color: "#334155" }}
-                >
-                  Guardar
-                </button>
-                <button
-                  type="submit"
-                  formAction={deleteLead}
-                  name="id"
-                  value={lead.id}
-                  style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.8rem" }}
-                >
-                  Eliminar
-                </button>
-              </form>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 12 }}>
+                <form action={updateLeadStatus.bind(null, lead.id)} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", flex: 1 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Estado</label>
+                    <select name="status" defaultValue={lead.status} style={{ padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}>
+                      {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <label style={{ display: "block", fontSize: "0.75rem", color: "#334155", marginBottom: 4 }}>Nota de seguimiento</label>
+                    <input
+                      name="notes"
+                      defaultValue={lead.notes ?? ""}
+                      placeholder="Ej: Llamé el martes, agendó para el sábado 10am"
+                      style={{ width: "100%", padding: "0.4rem 0.6rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.85rem", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.4rem 0.8rem", fontSize: "0.8rem", cursor: "pointer", color: "#334155" }}
+                  >
+                    Guardar
+                  </button>
+                </form>
+                <form action={deleteLead}>
+                  <input type="hidden" name="id" value={lead.id} />
+                  <button type="submit" style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.8rem" }}>
+                    Eliminar
+                  </button>
+                </form>
+              </div>
             </div>
           );
         })}
