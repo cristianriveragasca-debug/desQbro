@@ -55,6 +55,58 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     orderBy: [{ program: "asc" }, { dayOfWeek: "asc" }, { startTime: "asc" }],
   });
 
+  const PROGRAMS = Object.keys(PROGRAM_LABEL) as ("DESQBRO_BEBES" | "DESQBRO_AQUA" | "GUAGUAS_SOCCER")[];
+
+  const allEventsUpToMonthEnd = await prisma.programHistoryEvent.findMany({
+    where: { date: { lt: monthEnd } },
+    orderBy: { date: "asc" },
+  });
+
+  const netByClientProgram = new Map<string, number>();
+  for (const e of allEventsUpToMonthEnd) {
+    const key = `${e.clientId}|${e.program}`;
+    const delta = e.eventType === "ALTA" ? 1 : -1;
+    netByClientProgram.set(key, (netByClientProgram.get(key) ?? 0) + delta);
+  }
+  const activeCount = (program: string) => {
+    let count = 0;
+    for (const [key, net] of netByClientProgram) {
+      if (net > 0 && key.endsWith(`|${program}`)) count++;
+    }
+    return count;
+  };
+
+  const monthEvents = allEventsUpToMonthEnd.filter((e) => e.date >= monthStart);
+  const eventsByClient = new Map<string, typeof monthEvents>();
+  for (const e of monthEvents) {
+    const list = eventsByClient.get(e.clientId) ?? [];
+    list.push(e);
+    eventsByClient.set(e.clientId, list);
+  }
+
+  const newEnrollments: Record<string, number> = { DESQBRO_BEBES: 0, DESQBRO_AQUA: 0, GUAGUAS_SOCCER: 0 };
+  const cancellations: Record<string, number> = { DESQBRO_BEBES: 0, DESQBRO_AQUA: 0, GUAGUAS_SOCCER: 0 };
+  const programChanges: { clientName: string; from: string; to: string; date: Date }[] = [];
+
+  for (const [, events] of eventsByClient) {
+    const altas = events.filter((e) => e.eventType === "ALTA");
+    const bajas = events.filter((e) => e.eventType === "BAJA");
+    const matchedAltaIds = new Set<string>();
+    const matchedBajaIds = new Set<string>();
+
+    for (const baja of bajas) {
+      const alta = altas.find((a) => !matchedAltaIds.has(a.id) && a.program !== baja.program);
+      if (alta) {
+        matchedAltaIds.add(alta.id);
+        matchedBajaIds.add(baja.id);
+        programChanges.push({ clientName: baja.clientName, from: baja.program, to: alta.program, date: alta.date });
+      }
+    }
+
+    for (const a of altas) if (!matchedAltaIds.has(a.id)) newEnrollments[a.program]++;
+    for (const b of bajas) if (!matchedBajaIds.has(b.id)) cancellations[b.program]++;
+  }
+
   return (
     <div>
       <h1 style={{ marginTop: 0 }}>Reportes</h1>
@@ -154,6 +206,54 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
             })}
           </tbody>
         </table>
+      </div>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 4, color: "#3d0f30", textTransform: "capitalize" }}>
+        Niños por programa y movimientos · {monthLabel}
+      </h2>
+      <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0 0 12px" }}>
+        El historial de movimientos se empezó a registrar el 14 de septiembre de 2026 — los meses anteriores a esa fecha no
+        tienen cambios de programa ni bajas detectadas, solo los ingresos que ya existían.
+      </p>
+      <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Programa</th>
+              <th style={{ ...th, textAlign: "center" }}>Activos al cierre</th>
+              <th style={{ ...th, textAlign: "center" }}>Nuevos ingresos</th>
+              <th style={{ ...th, textAlign: "center" }}>Bajas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PROGRAMS.map((p) => (
+              <tr key={p} style={{ borderTop: "1px solid #e2e8f0" }}>
+                <td style={{ ...td, fontWeight: 600, color: "#3d0f30" }}>{PROGRAM_LABEL[p]}</td>
+                <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>{activeCount(p)}</td>
+                <td style={{ ...td, textAlign: "center", color: "#166534" }}>{newEnrollments[p]}</td>
+                <td style={{ ...td, textAlign: "center", color: "#dc2626" }}>{cancellations[p]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style={{ fontSize: "0.9rem", marginTop: 16, marginBottom: 8, color: "#3d0f30" }}>
+        Cambios de programa este mes ({programChanges.length})
+      </h3>
+      <div style={{ background: "#fff", borderRadius: 12, padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        {programChanges.length === 0 ? (
+          <p style={{ fontSize: "0.85rem", color: "#94a3b8", margin: 0 }}>Sin cambios de programa este mes.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {programChanges.map((c, i) => (
+              <div key={i} style={{ fontSize: "0.85rem", color: "#3d0f30" }}>
+                <strong>{c.clientName}</strong>: {PROGRAM_LABEL[c.from as keyof typeof PROGRAM_LABEL]} → {PROGRAM_LABEL[c.to as keyof typeof PROGRAM_LABEL]}
+                <span style={{ color: "#94a3b8", marginLeft: 6 }}>({c.date.toLocaleDateString("es-CO")})</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28, flexWrap: "wrap", gap: 8 }}>

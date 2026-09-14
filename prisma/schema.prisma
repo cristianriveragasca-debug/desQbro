@@ -18,6 +18,21 @@ enum Program {
   GUAGUAS_SOCCER
 }
 
+enum ProgramEventType {
+  ALTA
+  BAJA
+}
+
+model ProgramHistoryEvent {
+  id        String           @id @default(cuid())
+  clientId  String
+  clientName String
+  program   Program
+  eventType ProgramEventType
+  date      DateTime
+  createdAt DateTime         @default(now())
+}
+
 enum PlanType {
   MENSUAL
   TRIMESTRAL

@@ -12,6 +12,16 @@ function parseProgram(value: FormDataEntryValue | null): "DESQBRO_BEBES" | "DESQ
   return "DESQBRO_BEBES";
 }
 
+async function logProgramEvent(
+  clientId: string,
+  clientName: string,
+  program: "DESQBRO_BEBES" | "DESQBRO_AQUA" | "GUAGUAS_SOCCER",
+  eventType: "ALTA" | "BAJA",
+  date: Date = new Date()
+) {
+  await prisma.programHistoryEvent.create({ data: { clientId, clientName, program, eventType, date } });
+}
+
 function parsePlanType(value: FormDataEntryValue | null): "MENSUAL" | "TRIMESTRAL" | "SEMESTRAL" {
   if (value === "TRIMESTRAL" || value === "SEMESTRAL") return value;
   return "MENSUAL";
@@ -142,7 +152,8 @@ export async function createClient(formData: FormData) {
 
   const clientData = buildClientData(formData);
   const client = await prisma.client.create({ data: clientData });
-  await createSubscriptionWithPayments(client.id, formData);
+  const subscription = await createSubscriptionWithPayments(client.id, formData);
+  await logProgramEvent(client.id, client.fullName, subscription.program, "ALTA", subscription.paymentDate);
 
   revalidatePath("/clientes");
   revalidatePath("/financiero");
@@ -168,7 +179,16 @@ export async function deleteClient(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
+  const client = await prisma.client.findUnique({ where: { id }, include: { subscriptions: true } });
+
   await prisma.client.delete({ where: { id } });
+
+  if (client) {
+    for (const sub of client.subscriptions) {
+      await logProgramEvent(id, client.fullName, sub.program, "BAJA");
+    }
+  }
+
   revalidatePath("/clientes");
   revalidatePath("/financiero");
 }
@@ -183,7 +203,9 @@ export async function addProgramSubscription(clientId: string, formData: FormDat
   });
   if (existing) throw new Error("Este cliente ya está inscrito en ese programa.");
 
-  await createSubscriptionWithPayments(clientId, formData);
+  const client = await prisma.client.findUnique({ where: { id: clientId } });
+  const subscription = await createSubscriptionWithPayments(clientId, formData);
+  if (client) await logProgramEvent(clientId, client.fullName, subscription.program, "ALTA", subscription.paymentDate);
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
@@ -204,10 +226,21 @@ export async function updateProgramSubscription(id: string, clientId: string, fo
     throw new Error("Este cliente ya está inscrito en ese programa.");
   }
 
+  const [existingSubscription, client] = await Promise.all([
+    prisma.programSubscription.findUnique({ where: { id } }),
+    prisma.client.findUnique({ where: { id: clientId } }),
+  ]);
+
   await prisma.programSubscription.update({
     where: { id },
     data: subscriptionData,
   });
+
+  if (existingSubscription && client && existingSubscription.program !== subscriptionData.program) {
+    const now = new Date();
+    await logProgramEvent(clientId, client.fullName, existingSubscription.program, "BAJA", now);
+    await logProgramEvent(clientId, client.fullName, subscriptionData.program, "ALTA", now);
+  }
 
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
@@ -223,7 +256,15 @@ export async function deleteProgramSubscription(formData: FormData) {
   const clientId = String(formData.get("clientId") ?? "");
   if (!id) return;
 
+  const [subscription, client] = await Promise.all([
+    prisma.programSubscription.findUnique({ where: { id } }),
+    prisma.client.findUnique({ where: { id: clientId } }),
+  ]);
+
   await prisma.programSubscription.delete({ where: { id } });
+
+  if (subscription && client) await logProgramEvent(clientId, client.fullName, subscription.program, "BAJA");
+
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/clientes");
   revalidatePath("/financiero");
