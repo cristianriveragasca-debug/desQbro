@@ -341,9 +341,8 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                 </summary>
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                   {sub.payments.map((p) => (
-                    <form
+                    <div
                       key={p.id}
-                      action={updateSubscriptionPayment.bind(null, p.id, client.id)}
                       style={{
                         display: "flex",
                         gap: 6,
@@ -353,50 +352,55 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                         padding: "4px 0",
                       }}
                     >
-                      <input
-                        name="concept"
-                        defaultValue={p.concept}
-                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", flex: "1 1 140px", minWidth: 120 }}
-                      />
-                      <input
-                        name="date"
-                        type="date"
-                        defaultValue={toDateInputValue(p.paidAt ?? p.dueDate)}
-                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
-                      />
-                      <input
-                        name="amount"
-                        type="number"
-                        min={0}
-                        step={1000}
-                        defaultValue={Number(p.amount)}
-                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", width: 100 }}
-                      />
-                      <select
-                        name="status"
-                        defaultValue={p.status}
-                        style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
+                      <form
+                        action={updateSubscriptionPayment.bind(null, p.id, client.id)}
+                        style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", flex: 1 }}
                       >
-                        <option value="PAGADO">Pagado</option>
-                        <option value="PENDIENTE">Pendiente</option>
-                      </select>
-                      <button
-                        type="submit"
-                        style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.3rem 0.6rem", fontSize: "0.7rem", cursor: "pointer", color: "#334155" }}
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        type="submit"
-                        formAction={deleteSubscriptionPayment}
-                        name="id"
-                        value={p.id}
-                        style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.7rem" }}
-                      >
-                        Eliminar
-                      </button>
-                      <input type="hidden" name="clientId" value={client.id} />
-                    </form>
+                        <input
+                          name="concept"
+                          defaultValue={p.concept}
+                          style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", flex: "1 1 140px", minWidth: 120 }}
+                        />
+                        <input
+                          name="date"
+                          type="date"
+                          defaultValue={toDateInputValue(p.paidAt ?? p.dueDate)}
+                          style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
+                        />
+                        <input
+                          name="amount"
+                          type="number"
+                          min={0}
+                          step={1000}
+                          defaultValue={Number(p.amount)}
+                          style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", width: 100 }}
+                        />
+                        <select
+                          name="status"
+                          defaultValue={p.status}
+                          style={{ padding: "0.3rem 0.4rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem" }}
+                        >
+                          <option value="PAGADO">Pagado</option>
+                          <option value="PENDIENTE">Pendiente</option>
+                        </select>
+                        <button
+                          type="submit"
+                          style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "0.3rem 0.6rem", fontSize: "0.7rem", cursor: "pointer", color: "#334155" }}
+                        >
+                          Guardar
+                        </button>
+                      </form>
+                      <form action={deleteSubscriptionPayment}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <input type="hidden" name="clientId" value={client.id} />
+                        <button
+                          type="submit"
+                          style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "0.7rem" }}
+                        >
+                          Eliminar
+                        </button>
+                      </form>
+                    </div>
                   ))}
                 </div>
 
