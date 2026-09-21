@@ -9,6 +9,8 @@ import {
   deleteProgramSubscription,
   deleteSubscriptionPayment,
   renewMonthlyPayment,
+  setSubscriptionActive,
+  setSubscriptionInactive,
   updateSubscriptionPayment,
 } from "../actions";
 import {
@@ -317,6 +319,47 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                     Renovar pago ({PLAN_LABEL[sub.planType]})
                   </button>
                 </form>
+                {sub.status === "INACTIVO" ? (
+                  <form action={setSubscriptionActive}>
+                    <input type="hidden" name="id" value={sub.id} />
+                    <input type="hidden" name="clientId" value={client.id} />
+                    <button
+                      type="submit"
+                      style={{
+                        background: "#ecfdf5",
+                        color: "#166534",
+                        border: "1px solid #a7f3d0",
+                        padding: "0.3rem 0.7rem",
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Reactivar
+                    </button>
+                  </form>
+                ) : (
+                  <form action={setSubscriptionInactive}>
+                    <input type="hidden" name="id" value={sub.id} />
+                    <input type="hidden" name="clientId" value={client.id} />
+                    <button
+                      type="submit"
+                      style={{
+                        background: "#f1f5f9",
+                        color: "#64748b",
+                        border: "1px solid #cbd5e1",
+                        padding: "0.3rem 0.7rem",
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Marcar inactivo
+                    </button>
+                  </form>
+                )}
                 <Link
                   href={`/clientes/${client.id}/programas/${sub.id}/editar`}
                   style={{ color: "#5c1a4a", fontWeight: 600, fontSize: "0.8rem" }}

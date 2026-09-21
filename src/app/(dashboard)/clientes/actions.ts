@@ -389,3 +389,47 @@ export async function renewMonthlyPayment(formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath("/financiero");
 }
+
+export async function setSubscriptionInactive(formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const id = String(formData.get("id") ?? "");
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!id) return;
+
+  const [subscription, client] = await Promise.all([
+    prisma.programSubscription.findUnique({ where: { id } }),
+    prisma.client.findUnique({ where: { id: clientId } }),
+  ]);
+  if (!subscription || subscription.status === "INACTIVO") return;
+
+  await prisma.programSubscription.update({ where: { id }, data: { status: "INACTIVO" } });
+  if (client) await logProgramEvent(clientId, client.fullName, subscription.program, "BAJA");
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidatePath("/financiero");
+}
+
+export async function setSubscriptionActive(formData: FormData) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const id = String(formData.get("id") ?? "");
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!id) return;
+
+  const [subscription, client] = await Promise.all([
+    prisma.programSubscription.findUnique({ where: { id } }),
+    prisma.client.findUnique({ where: { id: clientId } }),
+  ]);
+  if (!subscription || subscription.status !== "INACTIVO") return;
+
+  await prisma.programSubscription.update({ where: { id }, data: { status: "ACTIVO" } });
+  if (client) await logProgramEvent(clientId, client.fullName, subscription.program, "ALTA");
+
+  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
+  revalidatePath("/financiero");
+}
