@@ -18,6 +18,18 @@ export default async function MovimienteAdminPage() {
   const today = new Date();
   const paidCount = registrations.filter((r) => r.status === "PAGADO").length;
 
+  const AGE_RANGES = [
+    { label: "3 y 4 años", min: 3, max: 4 },
+    { label: "5 y 6 años", min: 5, max: 6 },
+    { label: "7 y 8 años", min: 7, max: 8 },
+  ];
+  const ages = registrations.map((r) => computeAge(r.birthDate, today).years);
+  const ageRangeCounts = AGE_RANGES.map((range) => ({
+    ...range,
+    count: ages.filter((age) => age >= range.min && age <= range.max).length,
+  }));
+  const otherAgesCount = ages.filter((age) => !AGE_RANGES.some((range) => age >= range.min && age <= range.max)).length;
+
   return (
     <div>
       <h1 style={{ marginTop: 0 }}>Movimente</h1>
@@ -43,6 +55,22 @@ export default async function MovimienteAdminPage() {
           <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Pendientes de pago</div>
           <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#92400e" }}>{registrations.length - paidCount}</div>
         </div>
+      </div>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Niños por rango de edad</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
+        {ageRangeCounts.map((range) => (
+          <div key={range.label} style={{ background: "#fff", borderRadius: 12, padding: "1.1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{range.label}</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#3d0f30" }}>{range.count}</div>
+          </div>
+        ))}
+        {otherAgesCount > 0 && (
+          <div style={{ background: "#fff", borderRadius: 12, padding: "1.1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Fuera de estos rangos</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#64748b" }}>{otherAgesCount}</div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
