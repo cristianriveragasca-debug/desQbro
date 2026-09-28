@@ -14,7 +14,8 @@ export default auth((req) => {
   const isParentLogin = path === "/brujula/login";
   const isStaffLogin = path === "/login";
   const isApiAuth = path.startsWith("/api/auth");
-  const isPublicArea = path === "/reserva" || path.startsWith("/reserva/");
+  const isPublicArea =
+    path === "/reserva" || path.startsWith("/reserva/") || path === "/movimiente" || path.startsWith("/movimiente/");
 
   if (isApiAuth || isPublicArea) return NextResponse.next();
 

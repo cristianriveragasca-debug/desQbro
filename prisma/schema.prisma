@@ -95,6 +95,12 @@ enum LeadStatus {
   CONVERTIDO
 }
 
+enum MovimienteStatus {
+  PENDIENTE_PAGO
+  PAGADO
+  CANCELADO
+}
+
 enum ProgressLevel {
   INICIACION
   BASICO
@@ -217,6 +223,24 @@ model CoachNote {
   date           DateTime
   note           String
   createdAt      DateTime            @default(now())
+}
+
+model MovimienteRegistration {
+  id                   String            @id @default(cuid())
+  guardianName         String
+  childName            String
+  birthDate            DateTime
+  phone                String
+  email                String?
+  emergencyContactName String
+  emergencyContactPhone String
+  eps                  String?
+  medicalNotes         String?
+  imageConsent         Boolean           @default(false)
+  status               MovimienteStatus  @default(PENDIENTE_PAGO)
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 }
 
 model TrialRequest {
