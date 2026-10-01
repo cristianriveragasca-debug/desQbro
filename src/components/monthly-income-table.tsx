@@ -19,6 +19,7 @@ export function MonthlyIncomeTable({
   action: (formData: FormData) => void;
 }) {
   const [values, setValues] = useState<Record<string, number[]>>(initialValues);
+  const [touched, setTouched] = useState<Set<string>>(new Set());
 
   const handleChange = (programKey: string, monthIdx: number, raw: string) => {
     const parsed = raw === "" ? 0 : Number(raw);
@@ -27,6 +28,7 @@ export function MonthlyIncomeTable({
       next[programKey][monthIdx] = Number.isNaN(parsed) ? 0 : parsed;
       return next;
     });
+    setTouched((prev) => new Set(prev).add(`${programKey}_${monthIdx}`));
   };
 
   const monthTotal = (monthIdx: number) => programs.reduce((sum, p) => sum + (values[p.key]?.[monthIdx] ?? 0), 0);
@@ -55,10 +57,17 @@ export function MonthlyIncomeTable({
                     type="number"
                     min={0}
                     step={1000}
-                    name={`amount_${p.key}_${monthIdx + 1}`}
+                    name={touched.has(`${p.key}_${monthIdx}`) ? `amount_${p.key}_${monthIdx + 1}` : undefined}
                     value={values[p.key]?.[monthIdx] ?? 0}
                     onChange={(e) => handleChange(p.key, monthIdx, e.target.value)}
-                    style={{ width: 82, padding: "0.3rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", textAlign: "right" }}
+                    style={{
+                      width: 82,
+                      padding: "0.3rem",
+                      borderRadius: 6,
+                      border: touched.has(`${p.key}_${monthIdx}`) ? "1px solid #166534" : "1px solid #cbd5e1",
+                      fontSize: "0.75rem",
+                      textAlign: "right",
+                    }}
                   />
                 </td>
               ))}
@@ -81,6 +90,9 @@ export function MonthlyIncomeTable({
         >
           Guardar cambios
         </button>
+        <p style={{ fontSize: "0.7rem", color: "#94a3b8", margin: "8px 0 0" }}>
+          Solo se guardan las celdas que edites (marcadas en verde) — los demás meses siguen calculándose automáticamente.
+        </p>
       </div>
     </form>
   );
