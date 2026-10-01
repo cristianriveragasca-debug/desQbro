@@ -19,8 +19,8 @@ function parseMonthParam(value: string | undefined): { year: number; month: numb
   return { year: now.getFullYear(), month: now.getMonth() };
 }
 
-export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
-  const { month: monthParam } = await searchParams;
+export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ month?: string; program?: string }> }) {
+  const { month: monthParam, program: programFilter } = await searchParams;
   const { year, month } = parseMonthParam(monthParam);
   const weeks = monthWeeks(year, month);
   const monthStart = weeks[0].start;
@@ -54,8 +54,17 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const monthValue = monthInputValue(monthStart);
   const monthLabel = monthStart.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
+  const validProgramFilter =
+    programFilter === "DESQBRO_BEBES" || programFilter === "DESQBRO_AQUA" || programFilter === "GUAGUAS_SOCCER"
+      ? programFilter
+      : undefined;
+
   const expiringSubscriptions = await prisma.programSubscription.findMany({
-    where: { status: { not: "INACTIVO" }, dueDate: { gte: monthStart, lt: monthEnd } },
+    where: {
+      status: { not: "INACTIVO" },
+      dueDate: { gte: monthStart, lt: monthEnd },
+      ...(validProgramFilter ? { program: validProgramFilter } : {}),
+    },
     include: { client: true },
     orderBy: { dueDate: "asc" },
   });
@@ -273,6 +282,37 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
       <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0 0 12px" }}>
         Fecha de vencimiento del plan dentro de este mes (no cuenta inactivos). Útil para anticipar renovaciones.
       </p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <Link
+          href={`/reportes?month=${monthValue}`}
+          style={{
+            padding: "0.35rem 0.8rem",
+            borderRadius: 999,
+            fontSize: "0.8rem",
+            textDecoration: "none",
+            background: !validProgramFilter ? "#3d0f30" : "#f1f5f9",
+            color: !validProgramFilter ? "#fff" : "#334155",
+          }}
+        >
+          Todos
+        </Link>
+        {Object.entries(PROGRAM_LABEL).map(([value, label]) => (
+          <Link
+            key={value}
+            href={`/reportes?month=${monthValue}&program=${value}`}
+            style={{
+              padding: "0.35rem 0.8rem",
+              borderRadius: 999,
+              fontSize: "0.8rem",
+              textDecoration: "none",
+              background: validProgramFilter === value ? "#3d0f30" : "#f1f5f9",
+              color: validProgramFilter === value ? "#fff" : "#334155",
+            }}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
       <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
           <thead>
