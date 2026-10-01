@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { money, monthWeeks } from "@/lib/weeks";
 import { DAY_LABELS, PROGRAM_LABEL } from "@/lib/schedule";
 import { getEffectiveStatus } from "@/lib/status";
+import { saveMonthlyGoal } from "./actions";
 
 const PLAN_LABEL: Record<string, string> = { MENSUAL: "Mensual", TRIMESTRAL: "Trimestral", SEMESTRAL: "Semestral" };
 
@@ -77,24 +78,70 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
 
   const PROGRAMS = Object.keys(PROGRAM_LABEL) as ("DESQBRO_BEBES" | "DESQBRO_AQUA" | "GUAGUAS_SOCCER")[];
 
-  const allEventsUpToMonthEnd = await prisma.programHistoryEvent.findMany({
-    where: { date: { lt: monthEnd } },
-    orderBy: { date: "asc" },
-  });
+  const allHistoryEvents = await prisma.programHistoryEvent.findMany({ orderBy: { date: "asc" } });
 
-  const netByClientProgram = new Map<string, number>();
-  for (const e of allEventsUpToMonthEnd) {
-    const key = `${e.clientId}|${e.program}`;
-    const delta = e.eventType === "ALTA" ? 1 : -1;
-    netByClientProgram.set(key, (netByClientProgram.get(key) ?? 0) + delta);
-  }
-  const activeCount = (program: string) => {
-    let count = 0;
-    for (const [key, net] of netByClientProgram) {
-      if (net > 0 && key.endsWith(`|${program}`)) count++;
+  const activeCountAsOf = (asOfExclusive: Date, program: string) => {
+    const net = new Map<string, number>();
+    for (const e of allHistoryEvents) {
+      if (e.date >= asOfExclusive) continue;
+      if (e.program !== program) continue;
+      net.set(e.clientId, (net.get(e.clientId) ?? 0) + (e.eventType === "ALTA" ? 1 : -1));
     }
+    let count = 0;
+    for (const v of net.values()) if (v > 0) count++;
     return count;
   };
+
+  const allEventsUpToMonthEnd = allHistoryEvents.filter((e) => e.date < monthEnd);
+  const activeCount = (program: string) => activeCountAsOf(monthEnd, program);
+
+  // --- Cierre de mes: comparativo con el mes anterior ---
+  const prevMonthIdx = month === 0 ? 11 : month - 1;
+  const prevMonthYear = month === 0 ? year - 1 : year;
+  const prevWeeks = monthWeeks(prevMonthYear, prevMonthIdx);
+  const prevMonthStart = prevWeeks[0].start;
+  const prevMonthEnd = new Date(prevWeeks[prevWeeks.length - 1].end);
+  prevMonthEnd.setDate(prevMonthEnd.getDate() + 1);
+  const prevMonthLabel = prevMonthStart.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+
+  const prevPayments = await prisma.payment.findMany({
+    where: { status: "PAGADO", paidAt: { gte: prevMonthStart, lt: prevMonthEnd } },
+    include: { subscription: { select: { program: true } } },
+  });
+
+  const recaudoPorPrograma = (list: { amount: unknown; subscription: { program: string } }[], program: string) =>
+    list.filter((p) => p.subscription.program === program).reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const monthlyClose = PROGRAMS.map((p) => {
+    const prevRecaudo = recaudoPorPrograma(prevPayments, p);
+    const currRecaudo = recaudoPorPrograma(payments, p);
+    const varPct = prevRecaudo > 0 ? ((currRecaudo - prevRecaudo) / prevRecaudo) * 100 : currRecaudo > 0 ? 100 : 0;
+    const prevActivos = activeCountAsOf(prevMonthEnd, p);
+    const currActivos = activeCountAsOf(monthEnd, p);
+    return { program: p, prevRecaudo, currRecaudo, varPct, prevActivos, currActivos, varActivos: currActivos - prevActivos };
+  });
+  const monthlyCloseTotals = {
+    prevRecaudo: monthlyClose.reduce((s, r) => s + r.prevRecaudo, 0),
+    currRecaudo: monthlyClose.reduce((s, r) => s + r.currRecaudo, 0),
+    prevActivos: monthlyClose.reduce((s, r) => s + r.prevActivos, 0),
+    currActivos: monthlyClose.reduce((s, r) => s + r.currActivos, 0),
+  };
+  const monthlyCloseTotalVarPct =
+    monthlyCloseTotals.prevRecaudo > 0
+      ? ((monthlyCloseTotals.currRecaudo - monthlyCloseTotals.prevRecaudo) / monthlyCloseTotals.prevRecaudo) * 100
+      : 0;
+
+  // --- Tracker semanal con meta del mes ---
+  const monthlyGoal = await prisma.monthlyGoal.findUnique({ where: { year_month: { year, month: month + 1 } } });
+  const realisticGoal = monthlyGoal ? Number(monthlyGoal.realistic) : 0;
+  const aspirationalGoal = monthlyGoal ? Number(monthlyGoal.aspirational) : 0;
+  let cumulative = 0;
+  const weeklyTracker = weekRows.map((w, i) => {
+    cumulative += w.total;
+    const cumulativeTarget = realisticGoal > 0 ? (realisticGoal * (i + 1)) / weekRows.length : 0;
+    const onTarget = realisticGoal > 0 ? cumulative >= cumulativeTarget : null;
+    return { ...w, cumulative, pctVsRealistic: realisticGoal > 0 ? (cumulative / realisticGoal) * 100 : null, onTarget };
+  });
 
   const monthEvents = allEventsUpToMonthEnd.filter((e) => e.date >= monthStart);
   const eventsByClient = new Map<string, typeof monthEvents>();
@@ -164,31 +211,149 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
         </a>
       </form>
 
-      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30", textTransform: "capitalize" }}>
-        Resumen · {monthLabel}
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 4, color: "#3d0f30", textTransform: "capitalize" }}>
+        Cierre de mes · {monthLabel} vs {prevMonthLabel}
       </h2>
+      <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0 0 12px" }}>
+        Comparativo de recaudo y niños activos frente al mes anterior, por programa.
+      </p>
       <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Programa</th>
+              <th style={{ ...th, textAlign: "right" }}>Recaudo {prevMonthLabel}</th>
+              <th style={{ ...th, textAlign: "right" }}>Recaudo {monthLabel}</th>
+              <th style={{ ...th, textAlign: "right" }}>Var. %</th>
+              <th style={{ ...th, textAlign: "center" }}>Activos {prevMonthLabel}</th>
+              <th style={{ ...th, textAlign: "center" }}>Activos {monthLabel}</th>
+              <th style={{ ...th, textAlign: "center" }}>Var. Activos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthlyClose.map((r) => (
+              <tr key={r.program} style={{ borderTop: "1px solid #e2e8f0" }}>
+                <td style={{ ...td, fontWeight: 600, color: "#3d0f30" }}>{PROGRAM_LABEL[r.program]}</td>
+                <td style={{ ...td, textAlign: "right" }}>{money(r.prevRecaudo)}</td>
+                <td style={{ ...td, textAlign: "right" }}>{money(r.currRecaudo)}</td>
+                <td style={{ ...td, textAlign: "right", color: r.varPct >= 0 ? "#166534" : "#dc2626", fontWeight: 600 }}>
+                  {r.varPct >= 0 ? "+" : ""}
+                  {r.varPct.toFixed(1)}%
+                </td>
+                <td style={{ ...td, textAlign: "center" }}>{r.prevActivos}</td>
+                <td style={{ ...td, textAlign: "center" }}>{r.currActivos}</td>
+                <td style={{ ...td, textAlign: "center", color: r.varActivos > 0 ? "#166534" : r.varActivos < 0 ? "#dc2626" : "#64748b", fontWeight: 600 }}>
+                  {r.varActivos > 0 ? "+" : ""}
+                  {r.varActivos}
+                </td>
+              </tr>
+            ))}
+            <tr style={{ borderTop: "2px solid #cbd5e1", background: "#f8fafc" }}>
+              <td style={{ ...td, fontWeight: 700, color: "#3d0f30" }}>Total</td>
+              <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(monthlyCloseTotals.prevRecaudo)}</td>
+              <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(monthlyCloseTotals.currRecaudo)}</td>
+              <td style={{ ...td, textAlign: "right", fontWeight: 700, color: monthlyCloseTotalVarPct >= 0 ? "#166534" : "#dc2626" }}>
+                {monthlyCloseTotalVarPct >= 0 ? "+" : ""}
+                {monthlyCloseTotalVarPct.toFixed(1)}%
+              </td>
+              <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>{monthlyCloseTotals.prevActivos}</td>
+              <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>{monthlyCloseTotals.currActivos}</td>
+              <td style={{ ...td, textAlign: "center", fontWeight: 700 }}>
+                {monthlyCloseTotals.currActivos - monthlyCloseTotals.prevActivos}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28, flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ fontSize: "1.05rem", margin: 0, color: "#3d0f30", textTransform: "capitalize" }}>
+          Tracker semanal · {monthLabel}
+        </h2>
+        <form action={saveMonthlyGoal} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <input type="hidden" name="year" value={year} />
+          <input type="hidden" name="month" value={month + 1} />
+          <div>
+            <label style={{ display: "block", fontSize: "0.7rem", color: "#334155", marginBottom: 2 }}>Meta aspiracional</label>
+            <input
+              name="aspirational"
+              type="number"
+              min={0}
+              step={100000}
+              defaultValue={aspirationalGoal || ""}
+              style={{ width: 120, padding: "0.3rem 0.5rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "0.7rem", color: "#334155", marginBottom: 2 }}>Meta realista</label>
+            <input
+              name="realistic"
+              type="number"
+              min={0}
+              step={100000}
+              defaultValue={realisticGoal || ""}
+              style={{ width: 120, padding: "0.3rem 0.5rem", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
+            />
+          </div>
+          <button
+            type="submit"
+            style={{ background: "#166534", color: "#fff", border: "none", padding: "0.4rem 0.8rem", borderRadius: 6, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer" }}
+          >
+            Guardar meta
+          </button>
+        </form>
+      </div>
+      <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginTop: 12 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
           <thead>
             <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
               <th style={th}>Semana</th>
               <th style={{ ...th, textAlign: "center" }}>Pagos</th>
-              <th style={{ ...th, textAlign: "right" }}>Total</th>
+              <th style={{ ...th, textAlign: "right" }}>Recaudo semana</th>
+              <th style={{ ...th, textAlign: "right" }}>Acumulado</th>
+              <th style={{ ...th, textAlign: "right" }}>% vs meta realista</th>
+              <th style={{ ...th, textAlign: "center" }}>Estado</th>
             </tr>
           </thead>
           <tbody>
-            {weekRows.map((w, i) => (
+            {weeklyTracker.map((w, i) => (
               <tr key={w.start.toISOString()} style={{ borderTop: "1px solid #e2e8f0" }}>
                 <td style={td}>
                   Semana {i + 1} · {w.start.toLocaleDateString("es-CO", { day: "numeric", month: "short" })} - {w.end.toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
                 </td>
                 <td style={{ ...td, textAlign: "center" }}>{w.count}</td>
-                <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(w.total)}</td>
+                <td style={{ ...td, textAlign: "right" }}>{money(w.total)}</td>
+                <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{money(w.cumulative)}</td>
+                <td style={{ ...td, textAlign: "right" }}>{w.pctVsRealistic !== null ? `${w.pctVsRealistic.toFixed(1)}%` : "—"}</td>
+                <td style={{ ...td, textAlign: "center" }}>
+                  {w.onTarget === null ? (
+                    <span style={{ color: "#94a3b8" }}>Sin meta</span>
+                  ) : (
+                    <span
+                      style={{
+                        background: w.onTarget ? "#dcfce7" : "#fee2e2",
+                        color: w.onTarget ? "#166534" : "#dc2626",
+                        padding: "0.15rem 0.5rem",
+                        borderRadius: 999,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {w.onTarget ? "En meta" : "Atrasado"}
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {realisticGoal > 0 && (
+        <p style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 8 }}>
+          Meta aspiracional: {money(aspirationalGoal)} · Meta realista: {money(realisticGoal)} · Avance del mes:{" "}
+          {money(weeklyTracker[weeklyTracker.length - 1]?.cumulative ?? 0)} ({(((weeklyTracker[weeklyTracker.length - 1]?.cumulative ?? 0) / realisticGoal) * 100).toFixed(1)}% de la meta realista)
+        </p>
+      )}
 
       <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 12, color: "#3d0f30" }}>Detalle de pagos</h2>
       <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
