@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { money, monthWeeks } from "@/lib/weeks";
 import { DAY_LABELS, PROGRAM_LABEL } from "@/lib/schedule";
+import { getEffectiveStatus } from "@/lib/status";
+
+const PLAN_LABEL: Record<string, string> = { MENSUAL: "Mensual", TRIMESTRAL: "Trimestral", SEMESTRAL: "Semestral" };
 
 function monthInputValue(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -49,6 +53,13 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
 
   const monthValue = monthInputValue(monthStart);
   const monthLabel = monthStart.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+
+  const expiringSubscriptions = await prisma.programSubscription.findMany({
+    where: { status: { not: "INACTIVO" }, dueDate: { gte: monthStart, lt: monthEnd } },
+    include: { client: true },
+    orderBy: { dueDate: "asc" },
+  });
+  const today = new Date();
 
   const classGroups = await prisma.classGroup.findMany({
     include: { enrollments: { include: { client: true } } },
@@ -254,6 +265,52 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
             ))}
           </div>
         )}
+      </div>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 4, color: "#3d0f30", textTransform: "capitalize" }}>
+        Planes que vencen · {monthLabel} ({expiringSubscriptions.length})
+      </h2>
+      <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0 0 12px" }}>
+        Fecha de vencimiento del plan dentro de este mes (no cuenta inactivos). Útil para anticipar renovaciones.
+      </p>
+      <div className="table-scroll" style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+              <th style={th}>Niño/a</th>
+              <th style={th}>Programa</th>
+              <th style={th}>Plan</th>
+              <th style={th}>Vence</th>
+              <th style={th}>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expiringSubscriptions.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ ...td, textAlign: "center", color: "#94a3b8" }}>
+                  Ningún plan vence este mes.
+                </td>
+              </tr>
+            )}
+            {expiringSubscriptions.map((s) => {
+              const effective = getEffectiveStatus(s.status, s.dueDate, today);
+              const color = effective === "VENCIDO" ? "#dc2626" : "#166534";
+              return (
+                <tr key={s.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={td}>
+                    <Link href={`/clientes/${s.clientId}`} style={{ color: "#3d0f30", fontWeight: 600, textDecoration: "none" }}>
+                      {s.client.fullName}
+                    </Link>
+                  </td>
+                  <td style={td}>{PROGRAM_LABEL[s.program]}</td>
+                  <td style={td}>{PLAN_LABEL[s.planType]}</td>
+                  <td style={{ ...td, whiteSpace: "nowrap" }}>{s.dueDate.toLocaleDateString("es-CO")}</td>
+                  <td style={{ ...td, color, fontWeight: 600 }}>{effective === "VENCIDO" ? "Ya vencido" : "Por vencer"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28, flexWrap: "wrap", gap: 8 }}>
