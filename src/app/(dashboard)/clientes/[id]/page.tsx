@@ -28,6 +28,7 @@ import { ONE_TIME_FEES } from "@/lib/pricing";
 import { PROGRESS_BADGE, PROGRESS_LABEL, PROGRESS_LEVELS, progressPercent } from "@/lib/progress";
 import { SWIM_CRITERIA, SWIM_TRANSITION_LABEL, countChecked, isChecklistChecked, type SwimLevelValue } from "@/lib/swim-progress";
 import { SwimTrack } from "@/components/swim-track";
+import { ClientAvatar } from "@/components/client-avatar";
 import { GuipasAdminPanel } from "@/components/guipas-admin-panel";
 import { BebeAdminPanel } from "@/components/bebe-admin-panel";
 
@@ -63,6 +64,7 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
   const client = await prisma.client.findUnique({
     where: { id },
     include: {
+      photo: true,
       parentAccount: true,
       subscriptions: {
         include: {
@@ -89,13 +91,16 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
       </Link>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 8 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{client.fullName}</h1>
-          <p style={{ color: "#64748b", marginTop: 4 }}>
-            {formatAge(computeAge(client.birthDate))} · Acudiente: {client.guardianName} · {client.phone}
-            {client.email ? ` · ${client.email}` : ""}
-          </p>
-          {client.notes && <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>{client.notes}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <ClientAvatar name={client.fullName} photo={client.photo?.data} size={64} />
+          <div>
+            <h1 style={{ margin: 0 }}>{client.fullName}</h1>
+            <p style={{ color: "#64748b", marginTop: 4 }}>
+              {formatAge(computeAge(client.birthDate))} · Acudiente: {client.guardianName} · {client.phone}
+              {client.email ? ` · ${client.email}` : ""}
+            </p>
+            {client.notes && <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>{client.notes}</p>}
+          </div>
         </div>
         <Link
           href={`/clientes/${client.id}/editar`}

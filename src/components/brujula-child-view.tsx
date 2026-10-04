@@ -3,11 +3,11 @@ import { computeAge, formatAge } from "@/lib/dates";
 import { getEffectiveStatus } from "@/lib/status";
 import { DAY_LABELS } from "@/lib/schedule";
 import { PROGRESS_BADGE, PROGRESS_LABEL, progressPercent } from "@/lib/progress";
-import { SwimTrack } from "@/components/swim-track";
 import type { SwimLevelValue } from "@/lib/swim-progress";
-import { GuipasBadges } from "@/components/guipas-badges";
-import { BebeBadges } from "@/components/bebe-badges";
-import { BebeTrack } from "@/components/bebe-track";
+import { AquaIslandPath, BebeFootprintPath, SoccerFieldPath } from "@/components/program-paths";
+import { ClientAvatar } from "@/components/client-avatar";
+import { PhotoUploader } from "@/components/photo-uploader";
+import { uploadClientPhoto } from "@/app/brujula/(app)/actions";
 
 const PROGRAM_LABEL: Record<string, string> = {
   DESQBRO_BEBES: "desQbro Bebés",
@@ -30,10 +30,11 @@ function money(n: number) {
   return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 }
 
-export async function BrujulaChildView({ clientId }: { clientId: string }) {
+export async function BrujulaChildView({ clientId, editablePhoto = false }: { clientId: string; editablePhoto?: boolean }) {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     include: {
+      photo: true,
       subscriptions: {
         include: {
           payments: { orderBy: { dueDate: "desc" } },
@@ -66,8 +67,17 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
 
   return (
     <div>
-      <h1 style={{ marginTop: 8, color: "#3d0f30" }}>{client.fullName}</h1>
-      <p style={{ color: "#64748b" }}>{formatAge(computeAge(client.birthDate))}</p>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
+        {editablePhoto ? (
+          <PhotoUploader clientId={client.id} name={client.fullName} photo={client.photo?.data} action={uploadClientPhoto} />
+        ) : (
+          <ClientAvatar name={client.fullName} photo={client.photo?.data} size={84} />
+        )}
+        <div>
+          <h1 style={{ margin: 0, color: "#3d0f30" }}>{client.fullName}</h1>
+          <p style={{ color: "#64748b", margin: "4px 0 0" }}>{formatAge(computeAge(client.birthDate))}</p>
+        </div>
+      </div>
 
       {/* Programas y progreso */}
       <h2 style={sectionTitle}>Programas y progreso</h2>
@@ -88,10 +98,10 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
               </p>
 
               {sub.program === "DESQBRO_AQUA" ? (
-                <SwimTrack level={sub.swimLevel as SwimLevelValue} />
+                <AquaIslandPath level={sub.swimLevel as SwimLevelValue} checklist={sub.swimChecklist} />
               ) : sub.program === "GUAGUAS_SOCCER" ? (
                 <div style={{ marginTop: 10 }}>
-                  <GuipasBadges earned={(sub.soccerBadges as string[] | null) ?? []} />
+                  <SoccerFieldPath earned={(sub.soccerBadges as string[] | null) ?? []} />
                   {sub.monthlyEvaluations[0] && (
                     <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
@@ -111,8 +121,10 @@ export async function BrujulaChildView({ clientId }: { clientId: string }) {
                 </div>
               ) : sub.program === "DESQBRO_BEBES" ? (
                 <div style={{ marginTop: 10 }}>
-                  <BebeBadges earned={(sub.babyBadges as string[] | null) ?? []} />
-                  <BebeTrack skills={(sub.babySkills as Record<string, number> | null) ?? {}} />
+                  <BebeFootprintPath
+                    skills={(sub.babySkills as Record<string, number> | null) ?? {}}
+                    badges={(sub.babyBadges as string[] | null) ?? []}
+                  />
                   {sub.specialistNotes && (
                     <p style={{ fontSize: "0.85rem", color: "#3d0f30", marginTop: 8 }}>
                       <strong>Observaciones del especialista:</strong> {sub.specialistNotes}

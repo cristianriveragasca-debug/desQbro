@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeAge, formatAge } from "@/lib/dates";
+import { ClientAvatar } from "@/components/client-avatar";
 
 export default async function BrujulaHomePage() {
   const session = await auth();
@@ -11,7 +12,7 @@ export default async function BrujulaHomePage() {
 
   const account = await prisma.parentAccount.findUnique({
     where: { id: userId },
-    include: { clients: { include: { subscriptions: true } } },
+    include: { clients: { include: { subscriptions: true, photo: true } } },
   });
   if (!account) redirect("/brujula/login");
 
@@ -38,6 +39,9 @@ export default async function BrujulaHomePage() {
               display: "block",
             }}
           >
+            <div style={{ marginBottom: 10 }}>
+              <ClientAvatar name={c.fullName} photo={c.photo?.data} size={56} />
+            </div>
             <div style={{ fontWeight: 700, color: "#3d0f30", fontSize: "1.1rem" }}>{c.fullName}</div>
             <div style={{ color: "#64748b", fontSize: "0.85rem", marginTop: 4 }}>{formatAge(computeAge(c.birthDate))}</div>
             <div style={{ color: "#5c1a4a", fontSize: "0.85rem", marginTop: 8, fontWeight: 600 }}>

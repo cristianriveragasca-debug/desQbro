@@ -19,7 +19,7 @@ export default async function BrujulaChildPage({ params }: { params: Promise<{ c
       <Link href="/brujula" style={{ color: "#5c1a4a", fontSize: "0.85rem" }}>
         ← Ver otros hijos
       </Link>
-      <BrujulaChildView clientId={clientId} />
+      <BrujulaChildView clientId={clientId} editablePhoto />
     </div>
   );
 }
