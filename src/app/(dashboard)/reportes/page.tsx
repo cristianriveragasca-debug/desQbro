@@ -393,9 +393,18 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
         </table>
       </div>
 
-      <h2 style={{ fontSize: "1.05rem", marginTop: 28, marginBottom: 4, color: "#3d0f30", textTransform: "capitalize" }}>
-        Niños por programa y movimientos · {monthLabel}
-      </h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 28, flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ fontSize: "1.05rem", margin: 0, color: "#3d0f30", textTransform: "capitalize" }}>
+          Niños por programa y movimientos · {monthLabel}
+        </h2>
+        <a
+          href="/api/reportes/planes-programa"
+          style={{ background: "#166534", color: "#fff", padding: "0.45rem 0.9rem", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}
+        >
+          Excel para imprimir: inicio y fin de plan
+        </a>
+      </div>
+      <div style={{ height: 4 }} />
       <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0 0 12px" }}>
         El historial de movimientos se empezó a registrar el 14 de septiembre de 2026 — los meses anteriores a esa fecha no
         tienen cambios de programa ni bajas detectadas, solo los ingresos que ya existían.
