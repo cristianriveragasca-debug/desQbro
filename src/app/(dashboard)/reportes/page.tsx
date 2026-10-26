@@ -401,7 +401,13 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           href="/api/reportes/planes-programa"
           style={{ background: "#166534", color: "#fff", padding: "0.45rem 0.9rem", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}
         >
-          Excel para imprimir: inicio y fin de plan
+          Excel: inicio y fin de plan (sin inactivos)
+        </a>
+        <a
+          href="/api/reportes/planes-programa?inactivos=1"
+          style={{ background: "#3d0f30", color: "#fff", padding: "0.45rem 0.9rem", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}
+        >
+          Excel: todos los niños (incluye inactivos)
         </a>
       </div>
       <div style={{ height: 4 }} />

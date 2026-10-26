@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -19,12 +19,13 @@ function formatDate(d: Date) {
   });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const includeInactive = req.nextUrl.searchParams.get("inactivos") === "1";
   const session = await auth();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const subscriptions = await prisma.programSubscription.findMany({
-    where: { status: { not: "INACTIVO" } },
+    where: includeInactive ? undefined : { status: { not: "INACTIVO" } },
     include: { client: true },
   });
 
@@ -58,7 +59,7 @@ export async function GET() {
     sheet.getCell("A1").value = `desQbro — ${label}: inicio y fin de plan`;
     sheet.getCell("A1").font = { bold: true, size: 14 };
     sheet.mergeCells("A2:H2");
-    sheet.getCell("A2").value = `Generado el ${formatDate(today)} · ${rows.length} niños (sin inactivos)`;
+    sheet.getCell("A2").value = `Generado el ${formatDate(today)} · ${rows.length} niños (${includeInactive ? "incluye inactivos" : "sin inactivos"})`;
     sheet.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF64748B" } };
 
     const header = sheet.getRow(4);
@@ -102,7 +103,7 @@ export async function GET() {
   return new NextResponse(buffer as ArrayBuffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": 'attachment; filename="planes-por-programa.xlsx"',
+      "Content-Disposition": `attachment; filename="planes-por-programa${includeInactive ? "-todos" : ""}.xlsx"`,
     },
   });
 }
