@@ -502,6 +502,10 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
                       <option value="PENDIENTE">Pendiente</option>
                     </select>
                   </div>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#334155", flexBasis: "100%" }}>
+                    <input type="checkbox" name="renewsPlan" defaultChecked={effectiveStatus === "VENCIDO"} />
+                    Este pago renueva el plan (actualiza el vencimiento y lo reactiva)
+                  </label>
                   <button
                     type="submit"
                     style={{

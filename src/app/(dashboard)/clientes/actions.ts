@@ -284,19 +284,33 @@ export async function addSubscriptionPayment(subscriptionId: string, clientId: s
   if (!amount || amount <= 0) throw new Error("El valor debe ser mayor a cero");
 
   const date = new Date(dateStr);
+  const renewsPlan = formData.get("renewsPlan") === "on" && status === "PAGADO";
 
-  await prisma.payment.create({
-    data: {
-      subscriptionId,
-      concept,
-      amount,
-      status,
-      dueDate: date,
-      paidAt: status === "PAGADO" ? date : null,
-    },
-  });
+  const subscription = renewsPlan ? await prisma.programSubscription.findUnique({ where: { id: subscriptionId } }) : null;
+
+  await prisma.$transaction([
+    prisma.payment.create({
+      data: {
+        subscriptionId,
+        concept,
+        amount,
+        status,
+        dueDate: date,
+        paidAt: status === "PAGADO" ? date : null,
+      },
+    }),
+    ...(subscription
+      ? [
+          prisma.programSubscription.update({
+            where: { id: subscriptionId },
+            data: { paymentDate: date, dueDate: computeDueDate(date, subscription.planType), status: "ACTIVO" },
+          }),
+        ]
+      : []),
+  ]);
 
   revalidatePath(`/clientes/${clientId}`);
+  revalidatePath("/clientes");
   revalidatePath("/financiero");
 }
 
