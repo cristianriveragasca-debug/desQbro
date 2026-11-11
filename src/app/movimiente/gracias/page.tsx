@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const WHATSAPP_NUMBER = "573244702095";
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  "Hola, acabo de inscribir a mi hijo/a en Movimente (Semana de Vacaciones Recreativas desQbro) y quisiera conocer los medios de pago."
+  "Hola, acabo de inscribir a mi hijo/a en el Vacacional desQbro (Semana de Vacaciones Recreativas) y quisiera conocer los medios de pago."
 );
 
 export default function MovimienteGraciasPage() {
@@ -14,7 +14,7 @@ export default function MovimienteGraciasPage() {
         </div>
         <h1 style={styles.title}>¡Gracias por la información!</h1>
         <p style={styles.text}>
-          Ya recibimos la inscripción a <strong>Movimente</strong>. El siguiente paso es realizar el pago: escríbenos a
+          Ya recibimos la inscripción a <strong>Vacacional desQbro</strong>. El siguiente paso es realizar el pago: escríbenos a
           nuestro WhatsApp y solicita nuestros medios de pago.
         </p>
         <a

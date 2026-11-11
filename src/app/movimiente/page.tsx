@@ -1,15 +1,25 @@
 import Image from "next/image";
 import { createMovimienteRegistration } from "./actions";
+import { MAX_CHILD_AGE, MIN_CHILD_AGE } from "./age-limits";
+
+export const dynamic = "force-dynamic";
+
+function dateInput(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function MovimientePage() {
+  const now = new Date();
+  const youngestBirth = dateInput(new Date(now.getFullYear() - MIN_CHILD_AGE, now.getMonth(), now.getDate()));
+  const oldestBirth = dateInput(new Date(now.getFullYear() - (MAX_CHILD_AGE + 1), now.getMonth(), now.getDate() + 1));
   return (
     <div style={styles.page}>
       <form action={createMovimienteRegistration} style={styles.card}>
         <div style={styles.logoWrap}>
           <Image src="/logo.jpeg" alt="desQbro" width={220} height={92} style={{ width: "100%", height: "auto" }} priority />
         </div>
-        <h1 style={styles.title}>Movimente</h1>
-        <p style={styles.subtitle}>Inscripción a la Semana de Vacaciones Recreativas desQbro</p>
+        <h1 style={styles.title}>Vacacional desQbro</h1>
+        <p style={styles.subtitle}>Inscripción a la Semana de Vacaciones Recreativas · niños de 3 a 12 años</p>
 
         <label style={styles.label}>Nombre del acudiente *</label>
         <input name="guardianName" required style={styles.input} />
@@ -18,7 +28,10 @@ export default function MovimientePage() {
         <input name="childName" required style={styles.input} />
 
         <label style={styles.label}>Fecha de nacimiento *</label>
-        <input name="birthDate" type="date" required style={styles.input} />
+        <input name="birthDate" type="date" required min={oldestBirth} max={youngestBirth} style={{ ...styles.input, marginBottom: 4 }} />
+        <p style={{ fontSize: "0.75rem", color: "#64748b", margin: "0 0 1rem" }}>
+          Solo pueden inscribirse niños y niñas de {MIN_CHILD_AGE} a {MAX_CHILD_AGE} años.
+        </p>
 
         <label style={styles.label}>Contacto (celular) *</label>
         <input name="phone" type="tel" required style={styles.input} placeholder="+57..." />

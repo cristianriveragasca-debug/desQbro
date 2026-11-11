@@ -22,6 +22,8 @@ export default async function MovimienteAdminPage() {
     { label: "3 y 4 años", min: 3, max: 4 },
     { label: "5 y 6 años", min: 5, max: 6 },
     { label: "7 y 8 años", min: 7, max: 8 },
+    { label: "9 y 10 años", min: 9, max: 10 },
+    { label: "11 y 12 años", min: 11, max: 12 },
   ];
   const ages = registrations.map((r) => computeAge(r.birthDate, today).years);
   const ageRangeCounts = AGE_RANGES.map((range) => ({
@@ -32,8 +34,8 @@ export default async function MovimienteAdminPage() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Movimente</h1>
-      <p style={{ color: "#64748b" }}>Inscripciones a la Semana de Vacaciones Recreativas desQbro.</p>
+      <h1 style={{ marginTop: 0 }}>Vacacional desQbro</h1>
+      <p style={{ color: "#64748b" }}>Inscripciones a la Semana de Vacaciones Recreativas (niños de 3 a 12 años).</p>
 
       <div style={{ background: "#fff", borderRadius: 12, padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginTop: 16, maxWidth: 520 }}>
         <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0 }}>Comparte este enlace con los padres interesados:</p>
